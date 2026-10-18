@@ -106,15 +106,14 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ error: err.message || 'Terjadi kesalahan server' });
 });
 
-const PORT = process.env.PORT || 3000;
+if (process.env.NODE_ENV !== 'production' && process.env.PORT) {
+  app.listen(process.env.PORT, () => {
+    console.log(`Server jalan di http://localhost:${process.env.PORT}`);
+  });
+}
 
-app.listen(PORT, async () => {
-  console.log(`Server jalan di http://localhost:${PORT}`);
-  console.log(`Storage optimized: ${OPTIMIZED_DIR}`);
-  console.log(`Storage original:  ${ORIGINAL_DIR}`);
-  try {
-    await testConnection();
-  } catch (err) {
-    console.error('Gagal konek MySQL:', err.message);
-  }
+testConnection().catch((err) => {
+  console.error('Gagal konek MySQL:', err.message);
 });
+
+export default app;
