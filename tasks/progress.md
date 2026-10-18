@@ -47,4 +47,10 @@
 - [x] Tambahkan perintah `npm run worker`; sintaks worker dan pemeriksaan diff lulus.
 - [x] `npm run verify` mengembalikan exit code 0; endpoint yang diuji terlayani, tetapi startup server uji melaporkan port 3000 sudah digunakan.
 - [x] Sintaks layanan dan import SDK iLovePDF berhasil diperiksa; tes verifikasi tidak menjalankan kompresi API langsung.
+## Fase 4e: Pengaturan Level Kompresi ✅
+- [x] Tambah endpoint admin `GET /api/settings` dan `PATCH /api/settings`; PATCH membatasi level ke `low`, `recommended`, atau `extreme`.
+- [x] Tambah tabel key-value settings beserta nilai awal `compression_level = recommended` ke `docs/schema.sql`.
+- [x] Worker membaca setting saat memulai setiap job dan meneruskan level ke task kompresi iLovePDF.
+- [x] Tambah menu dan modal Pengaturan di dashboard admin dengan pemuatan GET dan penyimpanan PATCH.
+- [x] Pemeriksaan sintaks dan `git diff --check` lulus; `npm run verify` exit code 0, dengan catatan port 3000 sudah digunakan.
 ## Fase 5: Konversi Office ⬜

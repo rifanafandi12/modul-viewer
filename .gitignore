@@ -46,3 +46,9 @@ coverage/
 # Database dump lokal
 *.sql.gz
 dump.sql
+
+# Abaikan file khusus AI dan perencanaan
+AGENTS.md
+memory-bank/
+tasks/
+scripts/

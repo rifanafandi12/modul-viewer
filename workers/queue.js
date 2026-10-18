@@ -15,6 +15,7 @@ const optimizedDir = path.join(storageDir, 'optimized');
 const POLL_DELAY_MS = 5000;
 const HEARTBEAT_INTERVAL_MS = 60_000;
 const STALE_AFTER_MINUTES = 15;
+const COMPRESSION_LEVELS = new Set(['low', 'recommended', 'extreme']);
 let stopping = false;
 
 // Pauses the queue loop without blocking the event loop.
@@ -182,9 +183,18 @@ async function processJob(job) {
     );
     if (rows.length === 0) throw new Error('Modul tidak ditemukan.');
 
+    const [settingsRows] = await pool.execute(
+      'SELECT setting_value FROM settings WHERE setting_key = ?',
+      ['compression_level']
+    );
+    const compressionLevel = settingsRows[0]?.setting_value;
+    if (!COMPRESSION_LEVELS.has(compressionLevel)) {
+      throw new Error('Pengaturan level kompresi tidak ada atau tidak valid.');
+    }
+
     const originalPath = resolveStoredPath(originalDir, rows[0].original_file);
     const filename = path.basename(originalPath);
-    await compressPdf({ originalDir, filename, temporaryPath });
+    await compressPdf({ originalDir, filename, temporaryPath, compressionLevel });
     await fs.rename(temporaryPath, finalPath);
     await markJobDone(job, finalName);
   } catch (err) {

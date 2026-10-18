@@ -35,6 +35,15 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS settings (
+  setting_key VARCHAR(50) PRIMARY KEY,
+  setting_value VARCHAR(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO settings (setting_key, setting_value)
+VALUES ('compression_level', 'recommended')
+ON DUPLICATE KEY UPDATE setting_key = setting_key;
+
 -- Insert admin default (password: admin123)
 -- Hash di bawah ini di-generate menggunakan bcrypt dengan salt 10
 INSERT INTO users (username, password_hash) 

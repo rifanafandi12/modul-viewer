@@ -18,6 +18,9 @@
 - Fase 4d: cakupan `try...catch` mencakup persiapan path hingga penyimpanan hasil; error asli dicatat ke `jobs.error`, job/modul ditandai `failed`, dan worker mencetak `Gagal memproses job` beserta ID dan error.
 - Fase 4d: Word/PPT ditandai `failed` dengan pesan `Konversi Word/PPT belum didukung`; perintah `npm run worker` tersedia.
 - `node --check` dan import SDK iLovePDF berhasil; `git diff --check` lulus. `npm.cmd run verify` exit code 0 dan semua pemeriksaan HTTP dilaporkan lulus, tetapi app yang diluncurkan script tidak dapat bind ke port 3000 (`EADDRINUSE`), sehingga endpoint kemungkinan dijawab oleh server yang sudah berjalan. Verifikasi otomatis tidak menjalankan kompresi melalui API.
+- Fase 4e: API settings admin membaca dan menyimpan `compression_level` (`low`, `recommended`, `extreme`) dengan autentikasi; skema key-value dan seed awal ditambahkan ke `docs/schema.sql`.
+- Fase 4e: worker membaca level sekali pada awal setiap job dan meneruskannya ke iLovePDF; dashboard memiliki menu Pengaturan dan modal simpan.
+- Pemeriksaan sintaks dan `git diff --check` lulus. `npm.cmd run verify` exit code 0, tetapi server tes mendapat `EADDRINUSE` pada port 3000 sehingga pemeriksaan HTTP mungkin dijawab server yang sudah berjalan; verifikasi tidak menguji API settings secara langsung.
 
 ## Sedang Dikerjakan
 - (kosong)
@@ -26,7 +29,6 @@
 - Fase 5: Konversi Office (belum dimulai).
 
 ## Masalah Diketahui (TODO, bukan bug)
-[2026-10-18] [Fitur Pengaturan Kompresi] Pertanyaan: struktur tabel `settings` belum tersedia di `docs/schema.sql` atau file yang dibaca, jadi kolom, cara memilih baris pengaturan, dan nilai awal belum dapat dipastikan. Konteks: route dan worker perlu membaca/menulis `compression_level` tanpa mengarang nama kolom atau fallback. Opsi yang saya pertimbangkan: A / tabel singleton dengan kolom `compression_level`; B / tabel key-value dengan kolom kunci dan nilai. Rekomendasi saya: konfirmasi struktur tabel aktif dan tambahkan definisinya ke `docs/schema.sql` agar dapat direproduksi. Working tree juga masih memuat perubahan Fase 4d yang belum di-commit, sesuai `git status`.
 - [2026-10-18] Status hijau check-circle tampil di atas PDF setelah render; pertimbangkan toast atau hide di iterasi berikutnya.
 - [2026-10-18] Fase 3 dan 3b di-commit bersamaan karena public/ belum terlacak Git sejak awal. Ke depan, commit setelah setiap fase.
 - [2026-10-18] Lazy-load halaman PDF untuk modul besar — TODO Fase 4.
@@ -39,3 +41,4 @@
 - Fase 4d: review manual kode tidak menemukan masalah level tinggi; `codex review --uncommitted` tidak berjalan karena CLI tidak dapat mendeteksi direktori home.
 - Koreksi worker Fase 4d diverifikasi dengan `node --check` dan `git diff --check`. `npm.cmd run verify` exit code 0, tetapi server uji tetap mendapat `EADDRINUSE` di port 3000; Codex CLI review tetap terhalang direktori home.
 - Integrasi iLovePDF: pemeriksaan manual tidak menemukan masalah level tinggi; Codex CLI review tidak dapat berjalan karena direktori home tidak terdeteksi. Kompresi API langsung belum dites untuk menghindari penggunaan kredensial/kredit tanpa verifikasi terpisah.
+- Fase 4e: pemeriksaan manual endpoint, validasi nilai, pembacaan worker per job, dan alur UI tidak menemukan masalah level tinggi; `codex review --uncommitted` tetap gagal karena CLI tidak menemukan direktori home.

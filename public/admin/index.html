@@ -46,6 +46,10 @@
           <i data-lucide="files" class="h-4 w-4" aria-hidden="true"></i>
           Modul
         </a>
+        <button id="open-settings-button" type="button" class="inline-flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-text-muted transition hover:bg-bg-soft hover:text-brand-blue focus:outline-none focus:ring-2 focus:ring-brand-blue">
+          <i data-lucide="settings-2" class="h-4 w-4" aria-hidden="true"></i>
+          Pengaturan
+        </button>
         <button id="logout-button" type="button" class="ml-auto inline-flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-text-muted transition hover:bg-bg-soft hover:text-brand-red disabled:cursor-not-allowed disabled:opacity-60 lg:ml-0 lg:mt-auto">
           <i data-lucide="log-out" class="h-4 w-4" aria-hidden="true"></i>
           Logout
@@ -140,6 +144,32 @@
               <span id="submit-upload-label">Unggah modul</span>
             </button>
           </div>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="settings-dialog" class="m-auto max-h-[90vh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-lg border border-border-soft bg-white p-0 text-text-main backdrop:bg-text-main/40">
+      <form id="settings-form" class="p-5 sm:p-6">
+        <div class="mb-5">
+          <p class="mb-1 text-sm font-medium text-brand-blue">Administrasi</p>
+          <h2 class="text-xl font-bold">Pengaturan kompresi</h2>
+          <p class="mt-1 text-sm text-text-muted">Level ini digunakan untuk job kompresi berikutnya.</p>
+        </div>
+
+        <label for="compression-level" class="mb-2 block text-sm font-medium">Level kompresi</label>
+        <select id="compression-level" name="compression_level" class="block w-full rounded-lg border border-border-soft bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20">
+          <option value="low">Rendah — lebih menjaga kualitas</option>
+          <option value="recommended">Direkomendasikan — seimbang</option>
+          <option value="extreme">Ekstrem — ukuran lebih kecil</option>
+        </select>
+        <p id="settings-feedback" class="mt-4 hidden rounded-lg border px-3 py-2.5 text-sm" role="status" aria-live="polite"></p>
+
+        <div class="mt-6 flex flex-col-reverse gap-3 border-t border-border-soft pt-5 sm:flex-row sm:justify-end">
+          <button id="cancel-settings-button" type="button" class="rounded-lg border border-border-soft px-4 py-2.5 text-sm font-medium text-text-main hover:bg-bg-soft focus:outline-none focus:ring-2 focus:ring-brand-blue">Tutup</button>
+          <button id="save-settings-button" type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-blue px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-blue/90 focus:outline-none focus:ring-2 focus:ring-brand-blue focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">
+            <i data-lucide="save" class="h-4 w-4" aria-hidden="true"></i>
+            <span id="save-settings-label">Simpan pengaturan</span>
+          </button>
         </div>
       </form>
     </dialog>

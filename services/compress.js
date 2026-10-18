@@ -30,9 +30,12 @@ function safeApiError(error, credentials) {
 }
 
 // Runs a remote iLovePDF compression task and writes only a verified PDF to the worker temp path.
-export async function compressPdf({ originalDir, filename, temporaryPath }) {
+export async function compressPdf({ originalDir, filename, temporaryPath, compressionLevel }) {
   if (filename.split('.').pop()?.toLowerCase() !== 'pdf') {
     throw new Error('Konversi Word/PPT belum didukung');
+  }
+  if (!['low', 'recommended', 'extreme'].includes(compressionLevel)) {
+    throw new Error('Level kompresi tidak valid.');
   }
 
   const publicKey = process.env.ILOVEPDF_PUBLIC_KEY;
@@ -54,7 +57,7 @@ export async function compressPdf({ originalDir, filename, temporaryPath }) {
     await task.start();
     taskStarted = true;
     await task.addFile(inputFile);
-    await task.process({ compression_level: 'recommended' });
+    await task.process({ compression_level: compressionLevel });
 
     const downloadedData = await task.download();
     const outputBytes = Buffer.from(downloadedData);

@@ -8,6 +8,7 @@ import { testConnection } from './services/db.js';
 import modulRouter from './routes/modul.js';
 import authRouter from './routes/auth.js';
 import uploadRouter from './routes/upload.js';
+import settingsRouter from './routes/settings.js';
 
 dotenv.config();
 
@@ -74,6 +75,7 @@ app.locals.tmpDir = TMP_DIR;
 app.use('/api/modul', modulRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/modul', uploadRouter);
+app.use('/api/settings', settingsRouter);
 
 app.get('/health', (req, res) => {
   res.json({ ok: true, env: process.env.NODE_ENV || 'development' });

@@ -23,6 +23,14 @@ const submitUploadButton = document.querySelector('#submit-upload-button');
 const submitUploadLabel = document.querySelector('#submit-upload-label');
 const closeUploadButton = document.querySelector('#close-upload-button');
 const cancelUploadButton = document.querySelector('#cancel-upload-button');
+const openSettingsButton = document.querySelector('#open-settings-button');
+const settingsDialog = document.querySelector('#settings-dialog');
+const settingsForm = document.querySelector('#settings-form');
+const compressionLevelInput = document.querySelector('#compression-level');
+const settingsFeedback = document.querySelector('#settings-feedback');
+const cancelSettingsButton = document.querySelector('#cancel-settings-button');
+const saveSettingsButton = document.querySelector('#save-settings-button');
+const saveSettingsLabel = document.querySelector('#save-settings-label');
 
 function formatFileSize(bytes) {
   const size = Number(bytes);
@@ -148,6 +156,71 @@ function displayUploadError(message) {
   uploadError.classList.remove('hidden');
 }
 
+function displaySettingsFeedback(message, isError = false) {
+  settingsFeedback.textContent = message;
+  settingsFeedback.className = `mt-4 rounded-lg border px-3 py-2.5 text-sm ${isError
+    ? 'border-brand-red/30 bg-white text-brand-red'
+    : 'border-brand-green/30 bg-white text-text-main'}`;
+}
+
+async function loadCompressionSetting() {
+  settingsFeedback.classList.add('hidden');
+  compressionLevelInput.disabled = true;
+  saveSettingsButton.disabled = true;
+  let loaded = false;
+  try {
+    const response = await fetch('/api/settings', {
+      credentials: 'same-origin',
+      cache: 'no-store'
+    });
+    if (response.status === 401) {
+      window.location.replace('/login.html');
+      return;
+    }
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'Pengaturan gagal dimuat.');
+    compressionLevelInput.value = result.compression_level;
+    loaded = true;
+  } catch (error) {
+    displaySettingsFeedback(error.message || 'Pengaturan gagal dimuat.', true);
+  } finally {
+    compressionLevelInput.disabled = false;
+    saveSettingsButton.disabled = !loaded;
+  }
+}
+
+async function saveCompressionSetting(event) {
+  event.preventDefault();
+  saveSettingsButton.disabled = true;
+  compressionLevelInput.disabled = true;
+  saveSettingsLabel.textContent = 'Menyimpan…';
+  settingsFeedback.classList.add('hidden');
+
+  try {
+    const response = await fetch('/api/settings', {
+      method: 'PATCH',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ compression_level: compressionLevelInput.value })
+    });
+    if (response.status === 401) {
+      window.location.replace('/login.html');
+      return;
+    }
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || 'Pengaturan gagal disimpan.');
+    compressionLevelInput.value = result.compression_level;
+    displaySettingsFeedback('Level kompresi berhasil disimpan.');
+  } catch (error) {
+    displaySettingsFeedback(error.message || 'Pengaturan gagal disimpan.', true);
+  } finally {
+    saveSettingsButton.disabled = false;
+    compressionLevelInput.disabled = false;
+    saveSettingsLabel.textContent = 'Simpan pengaturan';
+  }
+}
+
 function validateSelectedFile(file) {
   if (!file) return 'Pilih file modul terlebih dahulu.';
   if (file.size > 20 * 1024 * 1024) return 'Ukuran file maksimal 20 MB.';
@@ -233,6 +306,13 @@ async function deleteModule(moduleId, title, button) {
 }
 
 openUploadButton.addEventListener('click', openUploadModal);
+openSettingsButton.addEventListener('click', () => {
+  settingsDialog.showModal();
+  if (globalThis.lucide) globalThis.lucide.createIcons();
+  loadCompressionSetting();
+});
+cancelSettingsButton.addEventListener('click', () => settingsDialog.close());
+settingsForm.addEventListener('submit', saveCompressionSetting);
 closeUploadButton.addEventListener('click', () => uploadDialog.close());
 cancelUploadButton.addEventListener('click', () => uploadDialog.close());
 uploadDialog.addEventListener('click', (event) => {
