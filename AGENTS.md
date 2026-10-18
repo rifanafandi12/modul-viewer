@@ -26,6 +26,12 @@ Dilarang menambahkan framework backend lain (Nest, Fastify, Hono, dsb),
 ORM berat (Prisma, Sequelize), atau bundler frontend (Vite, Webpack)
 tanpa persetujuan manusia.
 
+### Pengecualian yang Diizinkan
+- Tailwind CSS via CDN (`https://cdn.tailwindcss.com`) — DIIZINKAN.
+- Lucide Icons via CDN (`https://unpkg.com/lucide@latest`) — DIIZINKAN.
+- Bundler (Vite, Webpack, PostCSS CLI) — DILARANG tanpa persetujuan manusia.
+- Font eksternal (Google Fonts, Adobe Fonts) — DILARANG.
+
 ---
 
 ## 3. Aturan Wajib (Melanggar = Kerja Ulang)
@@ -55,6 +61,18 @@ tanpa persetujuan manusia.
 - PDF.js WAJIB render ke `<canvas>`, bukan `<iframe>`.
 - Tombol download dan print PDF.js WAJIB dimatikan.
 - Klik kanan dan Ctrl+S / Ctrl+P di area viewer WAJIB dinonaktifkan.
+- Gradien hanya boleh dipakai sesuai aturan di `memory-bank/desain.md`
+  bagian "Aturan Gradien". Maksimal dua stop, satu elemen per halaman,
+  hanya turunan brand-blue. Dilarang gradien di teks, border, atau
+  multi-warna.
+
+  ## Aturan Git
+- Sebelum memulai tugas baru, pastikan working tree bersih (`git status`
+  tidak menampilkan modified/untracked selain yang akan dikerjakan).
+- Jika working tree kotor, BERHENTI dan tulis di `status.md`, jangan mulai
+  tugas baru di atas perubahan yang belum di-commit.
+- Setelah menyelesaikan tugas dan lulus review manusia, minta manusia
+  untuk commit. Jangan commit sendiri.
 
 ### Keamanan
 - Dilarang menulis secret, token, atau password ke log.

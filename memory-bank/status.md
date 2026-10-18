@@ -1,4 +1,4 @@
-# Status Proyek
+﻿# Status Proyek
 
 ## Selesai
 - Fondasi: package.json, .env, app.js, services/db.js, services/token.js
@@ -7,10 +7,10 @@
 - Verifikasi: npm run verify lulus
 
 ## Sedang Dikerjakan
-- (kosong — menunggu Codex)
+- Fase 3: frontend PDF.js dibuat, menunggu fondasi server agar dapat diverifikasi
 
 ## Langkah Selanjutnya
-- Fase 3 di tasks/progress.md: integrasi PDF.js ke frontend
+- Perbaiki fondasi server yang kosong (`app.js`, route dan service terkait), lalu ulangi `npm run verify` dan review Fase 3
 
 ## Masalah Diketahui
-- (kosong)
+- [2026-10-18] [FASE 3] `npm run verify` gagal pada pemeriksaan `/health` dalam tiga percobaan setelah implementasi frontend. File frontend yang dibuat: `public/index.html`, `public/js/viewer.js`, `public/css/style.css`. Tidak ada perubahan backend. Dugaan penyebab: `app.js` dan route/service terkait berukuran nol byte, sehingga server dan endpoint `/health` tidak tersedia. Batas perubahan tugas melarang perbaikan file backend. Fase 3 belum dicentang; `/review` belum dijalankan karena verifikasi wajib belum lulus.

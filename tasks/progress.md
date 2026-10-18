@@ -18,6 +18,21 @@
 - [ ] Matikan tombol download & print PDF.js
 - [ ] Nonaktifkan klik kanan & Ctrl+S/P di area viewer
 - [ ] Update desain.md jika ada komponen baru
+## Fase 3b: Polish Desain Viewer dengan Tailwind ⬜
+- [ ] Tambahkan Tailwind CDN + konfigurasi tema brand di index.html
+- [ ] Tambahkan Lucide via CDN, inisialisasi `lucide.createIcons()`
+- [ ] Ganti `public/css/style.css` menjadi hanya: `@keyframes` spinner,
+      styling `<canvas>` PDF, dan reset minimal. Sisanya pakai Tailwind utility.
+- [ ] Redesign header: brand + ikon `book-open`, gradien biru (satu-satunya gradien)
+- [ ] Redesign sidebar daftar modul: kartu tipis, ikon `file-text`, status badge
+      (pakai `check-circle` hijau untuk ready, `alert-circle` merah untuk failed,
+      `loader` netral untuk processing/pending)
+- [ ] Redesign panel viewer: latar `bg-[#F8F9FA]`, border tipis, spacing lapang
+- [ ] State loading: spinner Lucide `loader-2` dengan animasi spin (satu-satunya animasi)
+- [ ] State error: ikon `alert-circle` merah + pesan
+- [ ] State empty: ikon `folder-open` + "Belum ada modul"
+- [ ] Responsif: sidebar stack di bawah `md:`
+- [ ] Uji manual di browser (desktop + mobile viewport)
 
 ## Fase 4: Upload & Kompresi ⬜ (Dibahas Nanti)
 - [ ] Endpoint upload (multer)
