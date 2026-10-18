@@ -7,7 +7,6 @@ const viewerState = document.querySelector('#viewer-state');
 const pdfPages = document.querySelector('#pdf-pages');
 let activeRequest = 0;
 
-// Mengambil JSON dari API dan menolak respons HTTP yang gagal.
 async function fetchJson(url) {
   const response = await fetch(url, { cache: 'no-store' });
   if (!response.ok) {
@@ -16,14 +15,12 @@ async function fetchJson(url) {
   return response.json();
 }
 
-// Merender ikon Lucide yang baru ditambahkan ke DOM.
 function refreshIcons() {
   if (globalThis.lucide) {
     globalThis.lucide.createIcons();
   }
 }
 
-// Mengubah state area viewer dan menyegarkan ikon untuk state tersebut.
 function setViewerState(iconName, message, detail = '') {
   viewerState.replaceChildren();
   const isReady = iconName === 'check-circle';
@@ -66,7 +63,6 @@ function setViewerState(iconName, message, detail = '') {
   refreshIcons();
 }
 
-// Membuat badge status modul dengan ikon dan warna sesuai state API.
 function makeStatusBadge(status) {
   const configByStatus = {
     ready: { icon: 'check-circle', label: 'Siap', classes: 'bg-brand-green-lt text-brand-green' },
@@ -89,7 +85,6 @@ function makeStatusBadge(status) {
   return badge;
 }
 
-// Memuat daftar modul, menampilkan state kosong/error, dan menyegarkan ikon.
 async function loadModules() {
   moduleStatus.replaceChildren();
   const loadingIcon = document.createElement('i');
@@ -154,11 +149,10 @@ async function loadModules() {
   }
 }
 
-// Mengambil token baru dan merender halaman PDF ke canvas.
 async function openModule(id, title) {
   const requestId = ++activeRequest;
   pdfPages.replaceChildren();
-  setViewerState('loader-2', `Memuat “${title}”…`);
+  setViewerState('loader-2', `Memuat "${title}"…`);
   viewerStatus.textContent = '';
 
   try {
@@ -205,8 +199,11 @@ async function openModule(id, title) {
   }
 }
 
+// Blokir klik kanan HANYA di area viewer
 viewer.addEventListener('contextmenu', (event) => event.preventDefault());
-viewer.addEventListener('keydown', (event) => {
+
+// Blokir Ctrl/Cmd+S/P di seluruh dokumen (bukan hanya viewer)
+document.addEventListener('keydown', (event) => {
   const key = event.key.toLowerCase();
   if ((event.ctrlKey || event.metaKey) && (key === 's' || key === 'p')) {
     event.preventDefault();

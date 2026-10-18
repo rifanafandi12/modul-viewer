@@ -3,13 +3,8 @@ import { pool } from '../services/db.js';
 import { generateToken, verifyToken } from '../services/token.js';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const router = Router();
-
-const STORAGE_PATH = process.env.STORAGE_PATH || './storage';
-const OPTIMIZED_DIR = path.resolve(__dirname, '..', STORAGE_PATH, 'optimized');
 
 router.get('/', async (req, res) => {
   try {
@@ -60,7 +55,16 @@ router.get('/:id/stream', async (req, res) => {
     const fileName = payload.file;
     if (!fileName) return res.status(404).json({ error: 'File tidak ditemukan' });
 
-    const filePath = path.join(OPTIMIZED_DIR, fileName);
+    // Anti path traversal: basename + validasi resolve di dalam optimizedDir
+    const safeName = path.basename(fileName);
+    const optimizedDir = req.app.locals.optimizedDir;
+    const filePath = path.resolve(optimizedDir, safeName);
+    const relative = path.relative(optimizedDir, filePath);
+
+    if (relative.startsWith('..') || path.isAbsolute(relative) || relative === '') {
+      return res.status(403).json({ error: 'Path file tidak valid' });
+    }
+
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({ error: 'File fisik tidak ditemukan' });
     }

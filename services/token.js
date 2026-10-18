@@ -2,7 +2,14 @@ import crypto from 'crypto';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const SECRET = process.env.APP_SECRET || 'default-secret';
+const SECRET = process.env.APP_SECRET;
+
+if (!SECRET || SECRET.length < 32) {
+  throw new Error(
+    'APP_SECRET tidak valid: harus di-set di .env dan minimal 32 karakter. ' +
+    'Generate dengan: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
+  );
+}
 
 export function generateToken(payload, ttlSeconds = 300) {
   const data = { ...payload, exp: Date.now() + ttlSeconds * 1000 };

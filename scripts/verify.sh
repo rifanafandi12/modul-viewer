@@ -30,4 +30,14 @@ HEADERS=$(curl -sI "http://localhost:3000/api/modul/1/stream?token=$TOKEN")
 echo "$HEADERS" | grep -qi 'content-disposition: inline' || { echo "FAIL: Content-Disposition"; exit 1; }
 echo "$HEADERS" | grep -qi 'cache-control: no-store' || { echo "FAIL: Cache-Control"; exit 1; }
 
+echo "==> Cek path traversal ditolak..."
+TRAVERSAL_TOKEN=$(node scripts/gen-token.mjs '{"id":1,"file":"../../.env"}')
+TRAVERSAL_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+  "http://localhost:3000/api/modul/1/stream?token=$TRAVERSAL_TOKEN")
+if [ "$TRAVERSAL_STATUS" = "200" ]; then
+  echo "FAIL: path traversal diterima (status $TRAVERSAL_STATUS)"
+  exit 1
+fi
+echo "    path traversal ditolak (status $TRAVERSAL_STATUS)."
+
 echo "==> Semua verifikasi lulus."

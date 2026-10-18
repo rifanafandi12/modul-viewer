@@ -91,6 +91,46 @@ DDL lengkap: `docs/schema.sql`.
 | GET | `/api/modul/:id/stream` | Stream PDF dengan token |
 
 ### Akan datang (Fase 4–5)
+## Fase 4a: Upload & Kompresi PDF (Detail)
+
+### Endpoint Baru
+- POST /api/modul — multipart, field: file, title, slug
+- (PATCH dan DELETE ditunda ke 4b)
+
+### Alur Upload
+1. Terima file via multer, simpan sementara di tmp/
+2. Validasi: ekstensi (.pdf/.doc/.docx/.ppt/.pptx), ukuran max 50MB
+3. Simpan ke storage/original/ dengan nama unik (slug + timestamp)
+4. Insert row `modules` dengan status 'pending'
+5. Insert row `jobs` (module_id, type='compress', status='pending')
+6. Response 202 dengan { id, status: 'pending' }
+
+### Worker (workers/queue.js)
+- Dipanggil via cron cPanel tiap 1 menit (atau manual `node workers/queue.js` untuk dev)
+- Ambil 1 job 'pending' tertua, set 'processing'
+- Kalau file PDF: jalankan pdf-lib + sharp untuk kompres
+- Kalau file Word/PPT: TOLAK dulu dengan error 'Konversi Office belum didukung' (Fase 5)
+- Hasil ke storage/optimized/, update modules.status='ready', jobs.status='done'
+- Kalau error: modules.status='failed', jobs.status='failed', jobs.error=pesan
+
+### Kompresi PDF (services/compress.js)
+- Baca PDF dengan pdf-lib
+- Untuk setiap halaman, ambil gambar yang tertanam, rekompres dengan sharp
+  (JPEG quality 75, resize max 1600px lebar)
+- Simpan ulang PDF
+- Return ukuran sebelum/sesudah
+
+### Halaman Admin (public/admin.html)
+- Read-only dulu: tabel modul (Judul, Status, Ukuran, Tanggal)
+- Tombol "Refresh" untuk reload
+- Belum ada form upload, belum ada tombol hapus
+- Layout: sidebar navigasi (Dashboard, Modul, Pengaturan) + konten
+- Warna dan ikon konsisten dengan viewer
+
+### Dependensi Baru
+- multer (upload)
+- pdf-lib (manipulasi PDF)
+- sharp (rekompres gambar)
 
 | Method | Path | Fungsi |
 | :--- | :--- | :--- |
