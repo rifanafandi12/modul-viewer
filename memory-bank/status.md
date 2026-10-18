@@ -20,6 +20,7 @@
 - Fase 5: Konversi Office (belum dimulai).
 
 ## Masalah Diketahui (TODO, bukan bug)
+- [2026-10-18] [Fase 4d] Tugas ditahan sebelum implementasi karena `git status` menunjukkan perubahan belum terselesaikan pada `package.json` dan `package-lock.json`. Mohon konfirmasi bahwa perubahan ini memang bagian dari pemasangan `pdf-lib` untuk Fase 4d atau bersihkan/commit terlebih dahulu; belum ada kode worker yang ditulis.
 - [2026-10-18] Status hijau check-circle tampil di atas PDF setelah render; pertimbangkan toast atau hide di iterasi berikutnya.
 - [2026-10-18] Fase 3 dan 3b di-commit bersamaan karena public/ belum terlacak Git sejak awal. Ke depan, commit setelah setiap fase.
 - [2026-10-18] Lazy-load halaman PDF untuk modul besar — TODO Fase 4.
