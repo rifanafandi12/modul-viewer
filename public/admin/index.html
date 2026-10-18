@@ -54,14 +54,21 @@
     </aside>
 
     <main class="min-w-0 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      <header class="mb-6 flex flex-col gap-2 border-b border-border-soft pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <header class="mb-6 flex flex-col gap-4 border-b border-border-soft pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p class="mb-1 text-sm font-medium text-brand-blue">Administrasi</p>
           <h1 class="text-2xl font-bold tracking-tight text-text-main sm:text-3xl">Daftar Modul</h1>
         </div>
-        <p id="admin-welcome" class="text-sm text-text-muted" role="status">Memeriksa sesi…</p>
+        <div class="flex flex-wrap items-center gap-3">
+          <p id="admin-welcome" class="text-sm text-text-muted" role="status">Memeriksa sesi…</p>
+          <button id="open-upload-button" type="button" class="inline-flex items-center gap-2 rounded-lg bg-brand-blue px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-blue/90 focus:outline-none focus:ring-2 focus:ring-brand-blue focus:ring-offset-2">
+            <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i>
+            Tambah Modul
+          </button>
+        </div>
       </header>
       <p id="logout-error" class="mb-4 hidden rounded-lg border border-brand-red/30 bg-white px-4 py-3 text-sm text-brand-red" role="alert"></p>
+      <p id="module-feedback" class="mb-4 hidden rounded-lg border border-brand-green/30 bg-white px-4 py-3 text-sm text-text-main" role="status"></p>
 
       <section class="overflow-hidden rounded-lg border border-border-soft bg-white" aria-labelledby="module-heading">
         <div class="flex flex-col gap-1 border-b border-border-soft px-4 py-4 sm:px-5">
@@ -84,6 +91,58 @@
         </div>
       </section>
     </main>
+
+    <dialog id="upload-dialog" class="m-auto max-h-[90vh] w-[calc(100%-2rem)] max-w-xl overflow-y-auto rounded-lg border border-border-soft bg-white p-0 text-text-main backdrop:bg-text-main/40">
+      <form id="upload-form" class="p-5 sm:p-6" novalidate>
+        <div class="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <p class="mb-1 text-sm font-medium text-brand-blue">Perpustakaan Digital</p>
+            <h2 id="upload-dialog-title" class="text-xl font-bold">Tambah modul</h2>
+            <p class="mt-1 text-sm text-text-muted">PDF, Word, atau PowerPoint. Ukuran maksimal 20 MB.</p>
+          </div>
+          <button id="close-upload-button" type="button" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-muted hover:bg-bg-soft hover:text-text-main focus:outline-none focus:ring-2 focus:ring-brand-blue" aria-label="Tutup dialog">
+            <i data-lucide="x" class="h-5 w-5" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div class="space-y-5">
+          <div>
+            <label for="upload-title" class="mb-2 block text-sm font-medium">Judul modul</label>
+            <input id="upload-title" name="title" type="text" maxlength="255" required class="block w-full rounded-lg border border-border-soft px-3 py-2.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20" placeholder="Contoh: Dasar Tata Boga">
+          </div>
+
+          <div>
+            <span class="mb-2 block text-sm font-medium">File modul</span>
+            <label id="upload-dropzone" for="upload-file" class="flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-border-soft bg-bg-soft px-4 py-6 text-center transition hover:border-brand-blue focus-within:ring-2 focus-within:ring-brand-blue">
+              <i data-lucide="upload-cloud" class="mb-2 h-7 w-7 text-brand-blue" aria-hidden="true"></i>
+              <span class="text-sm font-medium text-text-main">Seret file ke sini atau pilih dari perangkat</span>
+              <span id="upload-file-name" class="mt-1 text-xs text-text-muted">PDF, DOC, DOCX, PPT, PPTX · maksimal 20 MB</span>
+            </label>
+            <input id="upload-file" name="file" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" class="sr-only" required>
+          </div>
+
+          <div id="upload-progress-section" class="hidden space-y-2" aria-live="polite">
+            <div class="flex items-center justify-between gap-3 text-sm">
+              <span id="upload-progress-label" class="text-text-muted">Mengunggah…</span>
+              <span id="upload-progress-value" class="font-medium text-text-main">0%</span>
+            </div>
+            <div id="upload-progress" class="h-2 overflow-hidden rounded-lg bg-bg-soft" role="progressbar" aria-label="Progres upload" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <div id="upload-progress-fill" class="h-full w-0 rounded-lg bg-brand-blue transition-[width]"></div>
+            </div>
+          </div>
+
+          <p id="upload-error" class="hidden rounded-lg border border-brand-red/30 bg-white px-3 py-2.5 text-sm text-brand-red" role="alert"></p>
+
+          <div class="flex flex-col-reverse gap-3 border-t border-border-soft pt-5 sm:flex-row sm:justify-end">
+            <button id="cancel-upload-button" type="button" class="rounded-lg border border-border-soft px-4 py-2.5 text-sm font-medium text-text-main hover:bg-bg-soft focus:outline-none focus:ring-2 focus:ring-brand-blue">Batal</button>
+            <button id="submit-upload-button" type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-blue px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-blue/90 focus:outline-none focus:ring-2 focus:ring-brand-blue focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">
+              <i data-lucide="upload" class="h-4 w-4" aria-hidden="true"></i>
+              <span id="submit-upload-label">Unggah modul</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </dialog>
   </div>
 </body>
 </html>

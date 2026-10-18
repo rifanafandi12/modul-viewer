@@ -36,7 +36,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: MAX_FILE_SIZE, files: 1 },
+  limits: { fileSize: MAX_FILE_SIZE, files: 1, fields: 1, fieldSize: 1024 },
   fileFilter(req, file, callback) {
     const extension = path.extname(file.originalname).toLowerCase();
     if (!MIME_TYPES[extension] || !MIME_TYPES[extension].includes(file.mimetype)) {
@@ -99,6 +99,124 @@ function receiveUpload(req, res, next) {
     res.status(status).json({ error: status === 413 ? 'Ukuran file maksimal 20 MB.' : error.message });
   });
 }
+
+// Resolves a stored basename and rejects paths that could escape its storage directory.
+function resolveStoredFile(directory, filename) {
+  if (typeof filename !== 'string' || !filename || path.basename(filename) !== filename) {
+    const error = new Error('Path file modul tidak valid.');
+    error.status = 400;
+    throw error;
+  }
+
+  const filePath = path.resolve(directory, filename);
+  const relative = path.relative(directory, filePath);
+  if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    const error = new Error('Path file modul tidak valid.');
+    error.status = 400;
+    throw error;
+  }
+
+  return filePath;
+}
+
+router.delete('/:id', requireAuth, async (req, res) => {
+  if (!/^\d+$/.test(req.params.id)) {
+    return res.status(400).json({ error: 'ID modul tidak valid.' });
+  }
+
+  let connection;
+  let transactionStarted = false;
+  const stagedFiles = [];
+
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+    transactionStarted = true;
+
+    const [rows] = await connection.execute(
+      'SELECT id, original_file, optimized_file FROM modules WHERE id = ? FOR UPDATE',
+      [req.params.id]
+    );
+    if (rows.length === 0) {
+      await connection.rollback();
+      transactionStarted = false;
+      return res.status(404).json({ error: 'Modul tidak ditemukan.' });
+    }
+
+    const module = rows[0];
+    const files = [
+      resolveStoredFile(req.app.locals.originalDir, module.original_file),
+      module.optimized_file
+        ? resolveStoredFile(req.app.locals.optimizedDir, module.optimized_file)
+        : null
+    ].filter(Boolean);
+
+    for (const sourcePath of new Set(files)) {
+      let fileStats;
+      try {
+        fileStats = await fs.lstat(sourcePath);
+      } catch (error) {
+        if (error.code === 'ENOENT') continue;
+        throw error;
+      }
+      if (!fileStats.isFile()) {
+        const error = new Error('File modul bukan file reguler.');
+        error.status = 409;
+        throw error;
+      }
+
+      const stagedPath = path.join(req.app.locals.tmpDir, `delete-${randomBytes(16).toString('hex')}`);
+      try {
+        await moveUpload(sourcePath, stagedPath);
+        stagedFiles.push({ sourcePath, stagedPath });
+      } catch (error) {
+        try {
+          await fs.access(stagedPath);
+          await moveUpload(stagedPath, sourcePath);
+        } catch {
+          // Keep the original error; any failed restoration is reported below during rollback.
+        }
+        throw error;
+      }
+    }
+
+    await connection.execute('DELETE FROM jobs WHERE module_id = ?', [module.id]);
+    await connection.execute('DELETE FROM modules WHERE id = ?', [module.id]);
+    await connection.commit();
+    transactionStarted = false;
+
+    for (const file of stagedFiles) {
+      try {
+        await fs.unlink(file.stagedPath);
+      } catch (error) {
+        if (error.code !== 'ENOENT') console.error('Gagal membersihkan file modul yang dihapus:', error.message);
+      }
+    }
+
+    res.json({ ok: true });
+  } catch (error) {
+    if (transactionStarted && connection) {
+      try {
+        await connection.rollback();
+      } catch (rollbackError) {
+        console.error('Gagal membatalkan transaksi hapus modul:', rollbackError.message);
+      }
+    }
+
+    for (const file of stagedFiles.reverse()) {
+      try {
+        await moveUpload(file.stagedPath, file.sourcePath);
+      } catch (restoreError) {
+        if (restoreError.code !== 'ENOENT') console.error('Gagal memulihkan file modul:', restoreError.message);
+      }
+    }
+
+    console.error('Gagal menghapus modul:', error.message);
+    res.status(error.status || 500).json({ error: error.status ? error.message : 'Modul gagal dihapus.' });
+  } finally {
+    connection?.release();
+  }
+});
 
 router.post('/', requireAuth, receiveUpload, async (req, res) => {
   let connection;

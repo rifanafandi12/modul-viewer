@@ -5,6 +5,24 @@ const moduleTableWrap = document.querySelector('#module-table-wrap');
 const moduleRows = document.querySelector('#module-rows');
 const logoutButton = document.querySelector('#logout-button');
 const logoutError = document.querySelector('#logout-error');
+const moduleFeedback = document.querySelector('#module-feedback');
+const openUploadButton = document.querySelector('#open-upload-button');
+const uploadDialog = document.querySelector('#upload-dialog');
+const uploadForm = document.querySelector('#upload-form');
+const uploadTitle = document.querySelector('#upload-title');
+const uploadFile = document.querySelector('#upload-file');
+const uploadDropzone = document.querySelector('#upload-dropzone');
+const uploadFileName = document.querySelector('#upload-file-name');
+const uploadError = document.querySelector('#upload-error');
+const uploadProgressSection = document.querySelector('#upload-progress-section');
+const uploadProgress = document.querySelector('#upload-progress');
+const uploadProgressFill = document.querySelector('#upload-progress-fill');
+const uploadProgressLabel = document.querySelector('#upload-progress-label');
+const uploadProgressValue = document.querySelector('#upload-progress-value');
+const submitUploadButton = document.querySelector('#submit-upload-button');
+const submitUploadLabel = document.querySelector('#submit-upload-label');
+const closeUploadButton = document.querySelector('#close-upload-button');
+const cancelUploadButton = document.querySelector('#cancel-upload-button');
 
 function formatFileSize(bytes) {
   const size = Number(bytes);
@@ -21,8 +39,8 @@ function createStatusBadge(status) {
   const labels = {
     ready: ['Siap', 'border border-brand-green/30 bg-white text-brand-green'],
     failed: ['Gagal', 'border border-brand-red/30 bg-white text-brand-red'],
-    processing: ['Diproses', 'border border-border-soft bg-bg-soft text-text-muted'],
-    pending: ['Menunggu', 'border border-border-soft bg-bg-soft text-text-muted']
+    processing: ['Processing', 'border border-brand-blue/30 bg-white text-brand-blue'],
+    pending: ['Pending', 'border border-border-soft bg-bg-soft text-text-muted']
   };
   const [label, classes] = labels[status] || ['Tidak diketahui', 'border border-border-soft bg-bg-soft text-text-muted'];
   badge.textContent = label;
@@ -51,11 +69,19 @@ function renderModules(modules) {
 
     const actionCell = document.createElement('td');
     actionCell.className = 'whitespace-nowrap px-5 py-4 text-right';
-    const catalogLink = document.createElement('a');
-    catalogLink.href = '/';
-    catalogLink.className = 'font-medium text-brand-blue hover:underline';
-    catalogLink.textContent = 'Lihat katalog';
-    actionCell.append(catalogLink);
+    const deleteButton = document.createElement('button');
+    deleteButton.type = 'button';
+    deleteButton.dataset.deleteModule = module.id;
+    deleteButton.dataset.moduleTitle = module.title || 'modul ini';
+    deleteButton.className = 'inline-flex h-9 w-9 items-center justify-center rounded-lg text-text-muted transition hover:bg-bg-soft hover:text-brand-red focus:outline-none focus:ring-2 focus:ring-brand-blue disabled:cursor-not-allowed disabled:opacity-60';
+    deleteButton.setAttribute('aria-label', `Hapus ${module.title || 'modul'}`);
+    deleteButton.title = 'Hapus modul';
+    const deleteIcon = document.createElement('i');
+    deleteIcon.setAttribute('data-lucide', 'trash-2');
+    deleteIcon.className = 'h-4 w-4';
+    deleteIcon.setAttribute('aria-hidden', 'true');
+    deleteButton.append(deleteIcon);
+    actionCell.append(deleteButton);
 
     row.append(titleCell, statusCell, sizeCell, actionCell);
     moduleRows.append(row);
@@ -108,6 +134,189 @@ async function initializeDashboard() {
     window.location.replace('/login.html');
   }
 }
+
+function setUploadProgress(percent, label) {
+  const value = Math.max(0, Math.min(100, Math.round(percent)));
+  uploadProgressFill.style.width = `${value}%`;
+  uploadProgress.setAttribute('aria-valuenow', String(value));
+  uploadProgressValue.textContent = `${value}%`;
+  if (label) uploadProgressLabel.textContent = label;
+}
+
+function displayUploadError(message) {
+  uploadError.textContent = message;
+  uploadError.classList.remove('hidden');
+}
+
+function validateSelectedFile(file) {
+  if (!file) return 'Pilih file modul terlebih dahulu.';
+  if (file.size > 20 * 1024 * 1024) return 'Ukuran file maksimal 20 MB.';
+  const extension = file.name.split('.').pop().toLowerCase();
+  if (!['pdf', 'doc', 'docx', 'ppt', 'pptx'].includes(extension)) {
+    return 'Pilih file PDF, Word, atau PowerPoint.';
+  }
+  return '';
+}
+
+function requestModuleUpload(formData, onProgress) {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open('POST', '/api/modul');
+    request.withCredentials = true;
+    request.upload.addEventListener('progress', (event) => {
+      if (event.lengthComputable) onProgress((event.loaded / event.total) * 100);
+    });
+    request.addEventListener('load', () => {
+      let data = {};
+      try {
+        data = JSON.parse(request.responseText);
+      } catch {
+        data = {};
+      }
+
+      if (request.status >= 200 && request.status < 300) return resolve(data);
+      const error = new Error(data.error || 'Upload gagal. Silakan coba lagi.');
+      error.status = request.status;
+      reject(error);
+    });
+    request.addEventListener('error', () => reject(new Error('Koneksi terputus saat mengunggah file.')));
+    request.addEventListener('abort', () => reject(new Error('Upload dibatalkan.')));
+    request.send(formData);
+  });
+}
+
+function resetUploadDialog() {
+  uploadForm.reset();
+  uploadFileName.textContent = 'PDF, DOC, DOCX, PPT, PPTX · maksimal 20 MB';
+  uploadError.textContent = '';
+  uploadError.classList.add('hidden');
+  uploadProgressSection.classList.add('hidden');
+  setUploadProgress(0, 'Mengunggah…');
+  uploadDropzone.classList.remove('border-brand-blue', 'bg-white');
+}
+
+function openUploadModal() {
+  resetUploadDialog();
+  uploadDialog.showModal();
+  if (globalThis.lucide) globalThis.lucide.createIcons();
+  uploadTitle.focus();
+}
+
+async function deleteModule(moduleId, title, button) {
+  if (!window.confirm(`Hapus modul “${title}” beserta file aslinya?`)) return;
+
+  button.disabled = true;
+  moduleFeedback.classList.add('hidden');
+  try {
+    const response = await fetch(`/api/modul/${encodeURIComponent(moduleId)}`, {
+      method: 'DELETE',
+      credentials: 'same-origin',
+      cache: 'no-store'
+    });
+    if (response.status === 401) {
+      window.location.replace('/login.html');
+      return;
+    }
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      throw new Error(result.error || 'Modul gagal dihapus.');
+    }
+
+    await loadModules();
+    moduleFeedback.textContent = `Modul “${title}” berhasil dihapus.`;
+    moduleFeedback.classList.remove('hidden');
+  } catch (error) {
+    moduleFeedback.textContent = error.message || 'Modul gagal dihapus. Periksa koneksi lalu coba lagi.';
+    moduleFeedback.classList.remove('hidden');
+    button.disabled = false;
+  }
+}
+
+openUploadButton.addEventListener('click', openUploadModal);
+closeUploadButton.addEventListener('click', () => uploadDialog.close());
+cancelUploadButton.addEventListener('click', () => uploadDialog.close());
+uploadDialog.addEventListener('click', (event) => {
+  if (event.target === uploadDialog && !submitUploadButton.disabled) uploadDialog.close();
+});
+
+uploadFile.addEventListener('change', () => {
+  const file = uploadFile.files[0];
+  if (file) uploadFileName.textContent = `${file.name} · ${formatFileSize(file.size)}`;
+});
+
+uploadDropzone.addEventListener('dragover', (event) => {
+  event.preventDefault();
+  uploadDropzone.classList.add('border-brand-blue', 'bg-white');
+});
+uploadDropzone.addEventListener('dragleave', () => {
+  uploadDropzone.classList.remove('border-brand-blue', 'bg-white');
+});
+uploadDropzone.addEventListener('drop', (event) => {
+  event.preventDefault();
+  uploadDropzone.classList.remove('border-brand-blue', 'bg-white');
+  const [file] = event.dataTransfer.files;
+  if (!file) return;
+  const transfer = new DataTransfer();
+  transfer.items.add(file);
+  uploadFile.files = transfer.files;
+  uploadFile.dispatchEvent(new Event('change', { bubbles: true }));
+});
+
+uploadDialog.addEventListener('cancel', (event) => {
+  if (submitUploadButton.disabled) event.preventDefault();
+});
+
+uploadForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  uploadError.textContent = '';
+  uploadError.classList.add('hidden');
+
+  const title = uploadTitle.value.trim();
+  const file = uploadFile.files[0];
+  if (!title) return displayUploadError('Judul modul wajib diisi.');
+  if (title.length > 255) return displayUploadError('Judul maksimal 255 karakter.');
+  const fileError = validateSelectedFile(file);
+  if (fileError) return displayUploadError(fileError);
+
+  const formData = new FormData();
+  formData.append('title', title);
+  formData.append('file', file);
+
+  submitUploadButton.disabled = true;
+  closeUploadButton.disabled = true;
+  cancelUploadButton.disabled = true;
+  submitUploadLabel.textContent = 'Mengunggah…';
+  uploadProgressSection.classList.remove('hidden');
+  setUploadProgress(0, 'Mengunggah file…');
+
+  try {
+    await requestModuleUpload(formData, (progress) => setUploadProgress(progress, 'Mengunggah file…'));
+    setUploadProgress(100, 'Upload selesai');
+    uploadDialog.close();
+    resetUploadDialog();
+    await loadModules();
+    moduleFeedback.textContent = 'Modul berhasil diunggah dan menunggu antrean kompresi.';
+    moduleFeedback.classList.remove('hidden');
+  } catch (error) {
+    if (error.status === 401) {
+      window.location.replace('/login.html');
+      return;
+    }
+    displayUploadError(error.message || 'Upload gagal. Periksa koneksi lalu coba lagi.');
+    setUploadProgress(0, 'Upload gagal');
+  } finally {
+    submitUploadButton.disabled = false;
+    closeUploadButton.disabled = false;
+    cancelUploadButton.disabled = false;
+    submitUploadLabel.textContent = 'Unggah modul';
+  }
+});
+
+moduleRows.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-delete-module]');
+  if (!button) return;
+  deleteModule(button.dataset.deleteModule, button.dataset.moduleTitle, button);
+});
 
 logoutButton.addEventListener('click', async () => {
   logoutButton.disabled = true;

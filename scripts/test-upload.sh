@@ -109,10 +109,43 @@ fi
 
 TEST_MODULE_ID="$(node -e "const data=JSON.parse(process.argv[1]); process.stdout.write(String(data.module.id))" "$(cat "$RESPONSE_FILE")")"
 TEST_FILENAME="$(node -e "const data=JSON.parse(process.argv[1]); process.stdout.write(data.module.original_file)" "$(cat "$RESPONSE_FILE")")"
-job_status="$(node -e "const data=JSON.parse(process.argv[1]); process.stdout.write(data.job.status)" "$(cat "$RESPONSE_FILE")")"
-if [[ "$job_status" != pending ]]; then
-  echo 'FAIL: pekerjaan kompresi tidak berstatus pending.'
+if [[ -z "$TEST_MODULE_ID" || -z "$TEST_FILENAME" ]]; then
+  echo 'FAIL: respons upload tidak memuat identitas modul.'
   exit 1
 fi
-echo 'PASS: admin dapat mengunggah PDF; modul dan pekerjaan kompresi berstatus pending.'
-echo 'File dan baris database uji akan dibersihkan saat skrip selesai.'
+
+unauth_delete_status="$(curl -sS -o /dev/null -w '%{http_code}' \
+  -X DELETE "$BASE_URL/api/modul/$TEST_MODULE_ID")"
+if [[ "$unauth_delete_status" != 401 ]]; then
+  echo "FAIL: hapus tanpa sesi menghasilkan HTTP $unauth_delete_status, seharusnya 401."
+  exit 1
+fi
+if [[ ! -e "storage/original/$TEST_FILENAME" ]]; then
+  echo 'FAIL: file asli terhapus oleh permintaan tanpa sesi.'
+  exit 1
+fi
+echo 'PASS: hapus tanpa sesi ditolak dengan HTTP 401.'
+
+delete_status="$(curl -sS -o /dev/null -w '%{http_code}' \
+  -b "$COOKIE_JAR" -X DELETE "$BASE_URL/api/modul/$TEST_MODULE_ID")"
+if [[ "$delete_status" != 200 ]]; then
+  echo "FAIL: hapus modul menghasilkan HTTP $delete_status, seharusnya 200."
+  exit 1
+fi
+
+if [[ -e "storage/original/$TEST_FILENAME" ]]; then
+  echo 'FAIL: file asli masih ada setelah modul dihapus.'
+  exit 1
+fi
+if curl -fsS "$BASE_URL/api/modul" | node -e \
+  "let input='';process.stdin.on('data',chunk=>input+=chunk).on('end',()=>{const modules=JSON.parse(input);process.exit(modules.some(module=>String(module.id)===process.argv[1])?1:0)})" \
+  "$TEST_MODULE_ID"; then
+  :
+else
+  echo 'FAIL: baris modul masih muncul setelah dihapus.'
+  exit 1
+fi
+
+TEST_MODULE_ID=''
+TEST_FILENAME=''
+echo 'PASS: admin dapat mengunggah lalu menghapus modul dan file aslinya.'

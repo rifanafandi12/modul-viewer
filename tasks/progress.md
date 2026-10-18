@@ -28,11 +28,13 @@
 - [x] Buat dashboard `public/admin/index.html` dan `public/js/admin.js` dengan pemeriksaan sesi dan tabel modul responsif.
 - [x] Tabel memakai wrapper `overflow-x-auto`; `public/css/style.css` tidak diubah.
 - [x] Verifikasi otomatis dan tes endpoint `/api/auth/me` lulus.
-## Fase 4c: Fitur Upload & CRUD Modul 🟨 (TUGAS SAAT INI)
+## Fase 4c: Fitur Upload & CRUD Modul ✅
 - [x] Tambah endpoint `POST /api/modul` dengan `requireAuth` dan validasi file PDF/Word/PowerPoint.
 - [x] Batasi upload hingga 20 MB dan simpan sementara di `tmp/` sebelum pindah ke `storage/original/` memakai nama unik.
 - [x] Simpan modul dan job kompresi `pending` dalam transaksi; hapus file jika transaksi gagal.
-- [x] Tes curl upload tanpa sesi (401) dan sebagai admin (201, job pending).
+- [x] Buat modal upload dengan drag-and-drop, FormData, progress bar, dan refresh tabel tanpa reload.
+- [x] Tampilkan badge `Pending` dan `Processing` pada tabel admin.
+- [x] Tambah endpoint `DELETE /api/modul/:id` terproteksi, dengan staging file dan rollback jika database gagal.
+- [x] Tes curl upload dan hapus tanpa sesi (401), serta upload dan hapus sebagai admin; tes tidak mengasumsikan status `ready`.
 - [x] Verifikasi `scripts/verify.sh` lulus di port alternatif karena port 3000 sedang dipakai.
-- [ ] Fitur CRUD modul lainnya.
 ## Fase 5: Konversi Office ⬜
