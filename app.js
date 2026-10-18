@@ -106,13 +106,22 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ error: err.message || 'Terjadi kesalahan server' });
 });
 
-const PORT = process.env.PORT || 3000;
+// --- KONFIGURASI PORT UNTUK LOKAL & CPANEL ---
+// Passenger di cPanel akan error jika kita memaksa menggunakan port statis.
+// Jika NODE_ENV=production (di cPanel), kita panggil listen() kosong.
+// Jika di lokal, kita panggil listen(3000).
 
-app.listen(PORT, async () => {
-  console.log(`Server jalan di http://localhost:${PORT}`);
-  try {
-    await testConnection();
-  } catch (err) {
-    console.error('Gagal konek MySQL:', err.message);
-  }
-});
+if (process.env.NODE_ENV === 'production') {
+  app.listen();
+  console.log('Server berjalan di bawah Passenger (Production)');
+} else {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, async () => {
+    console.log(`Server jalan di http://localhost:${PORT}`);
+    try {
+      await testConnection();
+    } catch (err) {
+      console.error('Gagal konek MySQL:', err.message);
+    }
+  });
+}
