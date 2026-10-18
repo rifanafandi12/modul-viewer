@@ -6,14 +6,21 @@
 ## Fase 3b: Polish Desain Awal ✅
 ## Fase 3c: Perbaikan Temuan Keamanan ✅
 
-## Fase 3d: Revisi Desain Katalog & Cover Modul ⬜ (TUGAS SAAT INI)
-- [ ] Timpa `public/index.html`: hapus sidebar, buat grid layout katalog, tambah logo.
-- [ ] Timpa `public/js/viewer.js`: 
-      - Ganti logika render list menjadi render kartu grid.
-      - Tambahkan fungsi `generateCoverThumbnail` untuk merender halaman 1 PDF ke dalam kartu secara asinkron.
-      - Buat logika transisi: klik kartu -> sembunyikan katalog -> tampilkan viewer.
-      - Buat tombol back di viewer untuk kembali ke katalog.
-- [ ] Timpa `public/css/style.css`: hapus style sidebar lama, tambahkan style untuk cover (aspect-ratio 3:4).
-- [ ] Uji manual di browser: pastikan cover muncul, klik masuk viewer, tombol back berfungsi.
+## Fase 3d: Revisi Desain Katalog & Cover Modul ✅
+- [x] Timpa `public/index.html`: hapus sidebar, buat grid layout katalog, tambah logo.
+- [x] Timpa `public/js/viewer.js`: render kartu grid + fungsi cover thumbnail.
+- [x] Timpa `public/css/style.css`: styling cover 3:4.
+- [x] Uji manual di browser: cover muncul, viewer berfungsi, anti-unduh aman.
 
-## Fase 4: Upload & Kompresi ⬜
+## Fase 4a: Autentikasi Admin (Backend) ⬜ (TUGAS SAAT INI)
+- [ ] Update `docs/schema.sql` dengan tabel `users`
+- [ ] Install `bcrypt` dan `express-session`
+- [ ] Buat `services/auth.js` (verifikasi password)
+- [ ] Buat `routes/auth.js` (endpoint login/logout)
+- [ ] Buat middleware `requireAuth`
+- [ ] Update `app.js` untuk mount `express-session` dan route auth
+- [ ] `npm run verify` lulus
+
+## Fase 4b: UI Login & Dashboard Admin ⬜
+## Fase 4c: Fitur Upload & CRUD Modul ⬜
+## Fase 5: Konversi Office ⬜
