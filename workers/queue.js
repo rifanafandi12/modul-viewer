@@ -12,16 +12,9 @@ const rootDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const storageDir = path.resolve(rootDir, process.env.STORAGE_PATH || './storage');
 const originalDir = path.join(storageDir, 'original');
 const optimizedDir = path.join(storageDir, 'optimized');
-const POLL_DELAY_MS = 5000;
-const HEARTBEAT_INTERVAL_MS = 60_000;
 const STALE_AFTER_MINUTES = 15;
 const COMPRESSION_LEVELS = new Set(['low', 'recommended', 'extreme']);
-let stopping = false;
-
-// Pauses the queue loop without blocking the event loop.
-function delay(milliseconds) {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
-}
+const QUEUE_LOCK_NAME = 'modul_viewer_compression_queue';
 
 // Resolves a stored basename and rejects paths that could escape their storage folder.
 function resolveStoredPath(directory, filename) {
@@ -46,7 +39,7 @@ async function recoverStaleJobs() {
       `UPDATE jobs
        SET status = 'pending', started_at = NULL, error = NULL
        WHERE type = 'compress' AND status = 'processing'
-         AND started_at < DATE_SUB(NOW(), INTERVAL ? MINUTE)`,
+         AND (started_at IS NULL OR started_at < DATE_SUB(NOW(), INTERVAL ? MINUTE))`,
       [STALE_AFTER_MINUTES]
     );
     await connection.execute(
@@ -104,16 +97,6 @@ async function claimJob() {
   }
 }
 
-// Refreshes the processing timestamp so recovery only requeues jobs from a dead worker.
-function startHeartbeat(jobId) {
-  return setInterval(() => {
-    pool.execute(
-      "UPDATE jobs SET started_at = NOW() WHERE id = ? AND status = 'processing'",
-      [jobId]
-    ).catch((error) => console.error('Gagal memperbarui lease job:', error.message));
-  }, HEARTBEAT_INTERVAL_MS);
-}
-
 // Marks a claimed job and its module failed with the original processing error message.
 async function markJobFailed(job, message) {
   const connection = await pool.getConnection();
@@ -168,14 +151,12 @@ async function markJobDone(job, filename) {
 async function processJob(job) {
   let temporaryPath;
   let finalPath;
-  let heartbeat;
 
   try {
     const temporaryName = `.job-${job.id}-${randomBytes(8).toString('hex')}.tmp`;
     const finalName = `job-${job.id}.pdf`;
     temporaryPath = path.join(optimizedDir, temporaryName);
     finalPath = resolveStoredPath(optimizedDir, finalName);
-    heartbeat = startHeartbeat(job.id);
 
     const [rows] = await pool.execute(
       'SELECT original_file FROM modules WHERE id = ?',
@@ -215,47 +196,68 @@ async function processJob(job) {
       console.error('Gagal menyimpan status job gagal:', job.id, statusError);
       throw statusError;
     }
-  } finally {
-    if (heartbeat) clearInterval(heartbeat);
   }
 }
 
-// Runs the worker continuously, sleeping between polls when the queue is empty.
-async function run() {
-  await fs.access(originalDir);
-  await fs.access(optimizedDir);
-  await recoverStaleJobs();
-  let lastRecovery = Date.now();
+// Drains currently available and stale jobs once, then exits instead of polling forever.
+async function runOnce() {
+  let lockConnection;
+  let lockAcquired = false;
+  let exitCode = 0;
 
-  while (!stopping) {
+  try {
+    await fs.access(originalDir);
+    await fs.access(optimizedDir);
+
+    lockConnection = await pool.getConnection();
+    const [lockRows] = await lockConnection.execute(
+      'SELECT GET_LOCK(?, 0) AS acquired',
+      [QUEUE_LOCK_NAME]
+    );
+    lockAcquired = lockRows[0]?.acquired === 1;
+
+    if (!lockAcquired) {
+      console.log('Worker lain sedang memproses antrean; putaran ini dilewati.');
+    } else {
+      await recoverStaleJobs();
+
+      while (true) {
+        const job = await claimJob();
+        if (!job) break;
+
+        console.log(`Memproses job kompresi ${job.id}.`);
+        await processJob(job);
+      }
+      console.log('Antrean habis; worker berhenti.');
+    }
+  } catch (error) {
+    console.error('Worker antrean gagal:', error);
+    exitCode = 1;
+  } finally {
+    if (lockConnection) {
+      if (lockAcquired) {
+        try {
+          await lockConnection.execute('SELECT RELEASE_LOCK(?)', [QUEUE_LOCK_NAME]);
+        } catch (error) {
+          console.error('Gagal melepas lock antrean:', error.message);
+          exitCode = 1;
+        }
+      }
+      lockConnection.release();
+    }
+
     try {
-      if (Date.now() - lastRecovery >= HEARTBEAT_INTERVAL_MS) {
-        await recoverStaleJobs();
-        lastRecovery = Date.now();
-      }
-
-      const job = await claimJob();
-      if (!job) {
-        await delay(POLL_DELAY_MS);
-        continue;
-      }
-
-      console.log(`Memproses job kompresi ${job.id}.`);
-      await processJob(job);
+      await pool.end();
     } catch (error) {
-      console.error('Worker antrean gagal:', error.message);
-      await delay(POLL_DELAY_MS);
+      console.error('Gagal menutup koneksi worker:', error.message);
+      exitCode = 1;
     }
   }
 
-  await pool.end();
+  process.exit(exitCode);
 }
 
-process.once('SIGINT', () => { stopping = true; });
-process.once('SIGTERM', () => { stopping = true; });
-
-run().catch(async (error) => {
-  console.error('Worker tidak dapat dijalankan:', error.message);
-  await pool.end();
-  process.exitCode = 1;
+runOnce().catch((error) => {
+  console.error('Worker gagal berhenti dengan bersih:', error);
+  process.exit(1);
 });
