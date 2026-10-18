@@ -1,6 +1,4 @@
-CREATE DATABASE IF NOT EXISTS modul_viewer
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
+
 
 USE modul_viewer;
 
@@ -46,6 +44,6 @@ ON DUPLICATE KEY UPDATE setting_key = setting_key;
 
 -- Insert admin default (password: admin123)
 -- Hash di bawah ini di-generate menggunakan bcrypt dengan salt 10
-INSERT INTO users (username, password_hash) 
-VALUES ('admin', '$2b$10$wT/9U.p8B1xO2G3z4H5j6uK7l8M9n0O1p2Q3r4S5t6U7v8W9x0Y1z') 
+INSERT INTO users (username, password_hash)
+VALUES ('admin', '$2b$10$wT/9U.p8B1xO2G3z4H5j6uK7l8M9n0O1p2Q3r4S5t6U7v8W9x0Y1z')
 ON DUPLICATE KEY UPDATE username = username;
