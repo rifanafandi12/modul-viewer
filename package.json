@@ -1,0 +1,23 @@
+{
+  "name": "modul-viewer",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "app.js",
+  "scripts": {
+    "dev": "nodemon app.js",
+    "start": "node app.js",
+    "verify": "bash scripts/verify.sh"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Penampil modul dengan streaming anti-unduh",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mysql2": "^3.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}

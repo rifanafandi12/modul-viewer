@@ -1,0 +1,48 @@
+# Dependensi
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Storage (file pengguna, jangan pernah commit)
+storage/original/*
+storage/optimized/*
+!storage/original/.gitkeep
+!storage/optimized/.gitkeep
+!storage/optimized/contoh.pdf
+
+# Temp
+tmp/*
+!tmp/.gitkeep
+
+# Log
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build & cache
+dist/
+build/
+.cache/
+coverage/
+
+# Database dump lokal
+*.sql.gz
+dump.sql
