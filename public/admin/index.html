@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#F3F4F6">
+  <title>Dashboard Admin - Perpustakaan Modul</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'brand-blue': '#1E5AA8',
+            'brand-red': '#D32F2F',
+            'brand-green': '#4CAF50',
+            'text-main': '#212121',
+            'text-muted': '#666666',
+            'border-soft': '#E0E0E0',
+            'bg-soft': '#F3F4F6'
+          },
+          fontFamily: {
+            sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif']
+          }
+        }
+      }
+    };
+  </script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="/js/admin.js" defer></script>
+</head>
+<body class="min-h-screen bg-bg-soft font-sans text-text-main">
+  <div id="dashboard-app" class="hidden min-h-screen lg:grid lg:grid-cols-[220px_minmax(0,1fr)]">
+    <aside class="flex flex-col border-b border-border-soft bg-white lg:min-h-screen lg:border-b-0 lg:border-r">
+      <a href="/" class="flex h-16 items-center gap-3 border-b border-border-soft px-4" aria-label="Perpustakaan Digital, ke katalog">
+        <img src="/img/logo-1.png" alt="" class="h-9 w-auto object-contain">
+        <span class="text-sm font-semibold text-text-main">Admin</span>
+      </a>
+      <nav class="flex items-center gap-2 overflow-x-auto p-3 lg:flex-1 lg:flex-col lg:items-stretch" aria-label="Navigasi admin">
+        <a href="/" class="inline-flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-text-muted transition hover:bg-bg-soft hover:text-brand-blue">
+          <i data-lucide="library" class="h-4 w-4" aria-hidden="true"></i>
+          Katalog
+        </a>
+        <a href="#module-table" class="inline-flex shrink-0 items-center gap-3 rounded-lg bg-bg-soft px-3 py-2.5 text-sm font-semibold text-brand-blue" aria-current="page">
+          <i data-lucide="files" class="h-4 w-4" aria-hidden="true"></i>
+          Modul
+        </a>
+        <button id="logout-button" type="button" class="ml-auto inline-flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-text-muted transition hover:bg-bg-soft hover:text-brand-red disabled:cursor-not-allowed disabled:opacity-60 lg:ml-0 lg:mt-auto">
+          <i data-lucide="log-out" class="h-4 w-4" aria-hidden="true"></i>
+          Logout
+        </button>
+      </nav>
+    </aside>
+
+    <main class="min-w-0 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <header class="mb-6 flex flex-col gap-2 border-b border-border-soft pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p class="mb-1 text-sm font-medium text-brand-blue">Administrasi</p>
+          <h1 class="text-2xl font-bold tracking-tight text-text-main sm:text-3xl">Daftar Modul</h1>
+        </div>
+        <p id="admin-welcome" class="text-sm text-text-muted" role="status">Memeriksa sesi…</p>
+      </header>
+      <p id="logout-error" class="mb-4 hidden rounded-lg border border-brand-red/30 bg-white px-4 py-3 text-sm text-brand-red" role="alert"></p>
+
+      <section class="overflow-hidden rounded-lg border border-border-soft bg-white" aria-labelledby="module-heading">
+        <div class="flex flex-col gap-1 border-b border-border-soft px-4 py-4 sm:px-5">
+          <h2 id="module-heading" class="font-semibold text-text-main">Semua modul</h2>
+          <p class="text-sm text-text-muted">Status dan ukuran berkas modul di perpustakaan.</p>
+        </div>
+        <div id="module-state" class="px-4 py-8 text-center text-sm text-text-muted sm:px-5" role="status">Memuat daftar modul…</div>
+        <div id="module-table-wrap" class="hidden overflow-x-auto" tabindex="0" aria-label="Tabel modul, geser horizontal untuk melihat semua kolom">
+          <table id="module-table" class="min-w-[720px] w-full border-collapse text-left text-sm">
+            <thead class="bg-bg-soft text-xs uppercase tracking-wide text-text-muted">
+              <tr>
+                <th scope="col" class="px-5 py-3 font-semibold">Judul</th>
+                <th scope="col" class="px-5 py-3 font-semibold">Status</th>
+                <th scope="col" class="px-5 py-3 font-semibold">Ukuran</th>
+                <th scope="col" class="px-5 py-3 text-right font-semibold">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="module-rows" class="divide-y divide-border-soft"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

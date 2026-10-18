@@ -22,6 +22,11 @@
 - [x] Tambahkan dan jalankan `scripts/test-auth.sh` (login gagal/berhasil dan akses route terlindungi)
 - [x] `npm run verify` lulus
 
-## Fase 4b: UI Login & Dashboard Admin ⬜
+## Fase 4b: UI Login & Dashboard Admin ✅
+- [x] Buat `public/login.html` dan `public/js/auth.js` dengan Tailwind CDN serta alur login.
+- [x] Tambah endpoint sesi `GET /api/auth/me` dengan middleware `requireAuth`.
+- [x] Buat dashboard `public/admin/index.html` dan `public/js/admin.js` dengan pemeriksaan sesi dan tabel modul responsif.
+- [x] Tabel memakai wrapper `overflow-x-auto`; `public/css/style.css` tidak diubah.
+- [x] Verifikasi otomatis dan tes endpoint `/api/auth/me` lulus.
 ## Fase 4c: Fitur Upload & CRUD Modul ⬜
 ## Fase 5: Konversi Office ⬜

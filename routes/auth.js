@@ -19,6 +19,15 @@ export function requireAuth(req, res, next) {
   next();
 }
 
+router.get('/me', requireAuth, (req, res) => {
+  try {
+    res.json({ ok: true, user: req.session.admin });
+  } catch (error) {
+    console.error('Gagal memeriksa sesi admin:', error.message);
+    res.status(500).json({ error: 'Terjadi kesalahan server' });
+  }
+});
+
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body || {};
