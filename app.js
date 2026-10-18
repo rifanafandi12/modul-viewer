@@ -103,7 +103,11 @@ app.use((req, res) => {
 
 app.use((err, req, res, next) => {
   console.error('[ERROR]', err);
-  res.status(err.status || 500).json({ error: err.message || 'Terjadi kesalahan server' });
+  // UBAH BARIS INI SEMENTARA UNTUK MELIHAT ERROR ASLI:
+  res.status(err.status || 500).json({
+    error: err.message || 'Terjadi kesalahan server',
+    stack: err.stack // <--- Ini akan menampilkan detail error di browser
+  });
 });
 
 // --- KONFIGURASI PORT UNTUK LOKAL & CPANEL ---
