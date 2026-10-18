@@ -1,208 +1,252 @@
+const katalogSection = document.querySelector('#katalog-section');
+const viewerSection = document.querySelector('#viewer-section');
+const btnBack = document.querySelector('#btn-back');
+const viewerTitle = document.querySelector('#viewer-title');
 const moduleList = document.querySelector('#module-list');
 const moduleStatus = document.querySelector('#module-status');
-const moduleCount = document.querySelector('#module-count');
 const viewer = document.querySelector('#viewer');
 const viewerStatus = document.querySelector('#viewer-status');
 const viewerState = document.querySelector('#viewer-state');
 const pdfPages = document.querySelector('#pdf-pages');
 let activeRequest = 0;
 
+// --- UTILITAS ---
+
 async function fetchJson(url) {
   const response = await fetch(url, { cache: 'no-store' });
-  if (!response.ok) {
-    throw new Error(`Permintaan gagal (${response.status}).`);
-  }
+  if (!response.ok) throw new Error(`Permintaan gagal (${response.status}).`);
   return response.json();
 }
 
 function refreshIcons() {
-  if (globalThis.lucide) {
-    globalThis.lucide.createIcons();
-  }
+  if (globalThis.lucide) globalThis.lucide.createIcons();
 }
+
+function formatDate(isoString) {
+  if (!isoString) return '';
+  const date = new Date(isoString);
+  return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// --- STATE VIEWER ---
 
 function setViewerState(iconName, message, detail = '') {
   viewerState.replaceChildren();
-  const isReady = iconName === 'check-circle';
-  const isError = iconName === 'alert-circle';
-  viewerState.className = isReady
-    ? 'flex items-center justify-center gap-2 pb-4 text-sm text-brand-green'
-    : 'flex min-h-[55vh] flex-col items-center justify-center gap-2 text-center text-text-muted';
-  if (isError) {
-    viewerState.classList.add('text-brand-red');
-  }
-
+  viewerState.className = 'flex min-h-[60vh] flex-col items-center justify-center gap-2 text-center text-text-muted';
+  
   if (iconName) {
     const icon = document.createElement('i');
     icon.setAttribute('data-lucide', iconName);
     icon.setAttribute('aria-hidden', 'true');
-    if (iconName === 'loader-2') {
-      icon.className = 'viewer-spinner h-6 w-6 text-brand-blue';
-    } else if (iconName === 'alert-circle') {
-      icon.className = 'h-8 w-8 text-brand-red';
-    } else if (iconName === 'check-circle') {
-      icon.className = 'h-6 w-6 text-brand-green';
-    } else {
-      icon.className = 'h-10 w-10';
-    }
+    icon.className = iconName === 'loader-2' ? 'viewer-spinner h-8 w-8 text-brand-blue' : 
+                       iconName === 'alert-circle' ? 'h-10 w-10 text-brand-red' : 'h-10 w-10';
     viewerState.append(icon);
   }
 
   const label = document.createElement('p');
-  label.className = 'font-medium';
+  label.className = 'font-medium text-lg mt-2';
   label.textContent = message;
   viewerState.append(label);
 
   if (detail) {
     const hint = document.createElement('p');
-    hint.className = 'text-sm';
+    hint.className = 'text-sm max-w-md';
     hint.textContent = detail;
     viewerState.append(hint);
   }
-
   refreshIcons();
 }
 
-function makeStatusBadge(status) {
-  const configByStatus = {
-    ready: { icon: 'check-circle', label: 'Siap', classes: 'bg-brand-green-lt text-brand-green' },
-    failed: { icon: 'alert-circle', label: 'Gagal', classes: 'bg-brand-red-lt text-brand-red' },
-    processing: { icon: 'loader', label: 'Diproses', classes: 'bg-bg-soft text-text-muted' },
-    pending: { icon: 'loader', label: 'Menunggu', classes: 'bg-bg-soft text-text-muted' }
-  };
-  const config = configByStatus[status] || configByStatus.pending;
-  const badge = document.createElement('span');
-  badge.className = `inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs ${config.classes}`;
-
-  const icon = document.createElement('i');
-  icon.setAttribute('data-lucide', config.icon);
-  icon.className = 'h-4 w-4';
-  icon.setAttribute('aria-hidden', 'true');
-
-  const label = document.createElement('span');
-  label.textContent = config.label;
-  badge.append(icon, label);
-  return badge;
-}
+// --- RENDER KATALOG ---
 
 async function loadModules() {
-  moduleStatus.replaceChildren();
-  const loadingIcon = document.createElement('i');
-  loadingIcon.setAttribute('data-lucide', 'loader-2');
-  loadingIcon.className = 'viewer-spinner mr-2 inline-block h-4 w-4 align-[-3px]';
-  loadingIcon.setAttribute('aria-hidden', 'true');
-  moduleStatus.append(loadingIcon, document.createTextNode('Memuat daftar modul…'));
-  refreshIcons();
-
+  moduleStatus.textContent = 'Memuat katalog...';
   try {
     const modules = await fetchJson('/api/modul');
     moduleList.replaceChildren();
-    moduleCount.textContent = String(Array.isArray(modules) ? modules.length : 0);
+    moduleStatus.textContent = '';
 
     if (!Array.isArray(modules) || modules.length === 0) {
       moduleStatus.textContent = 'Belum ada modul.';
-      refreshIcons();
-      setViewerState('folder-open', 'Belum ada modul.', 'Modul yang tersedia akan muncul di sini.');
       return;
     }
 
-    moduleStatus.textContent = '';
     for (const modul of modules) {
-      const item = document.createElement('li');
+      // Card Container
       const card = document.createElement('button');
       card.type = 'button';
       card.disabled = modul.status !== 'ready';
-      card.className = 'flex w-full items-start gap-3 rounded-lg border border-border-soft bg-white p-3 text-left transition-colors duration-150 hover:border-brand-blue disabled:cursor-not-allowed disabled:opacity-70';
+      card.className = 'group flex flex-col bg-white rounded-lg border border-border-soft overflow-hidden text-left transition-all duration-200 hover:border-brand-blue hover:shadow-md disabled:cursor-not-allowed disabled:opacity-75 focus:outline-none focus:ring-2 focus:ring-brand-blue focus:ring-offset-2';
+      card.addEventListener('click', () => openModule(modul.id, modul.title));
 
-      const icon = document.createElement('i');
-      icon.setAttribute('data-lucide', 'file-text');
-      icon.className = 'mt-0.5 h-4 w-4 shrink-0 text-brand-blue';
-      icon.setAttribute('aria-hidden', 'true');
+      // Area Cover
+      const coverWrapper = document.createElement('div');
+      coverWrapper.className = 'relative w-full aspect-[3/4] bg-bg-soft overflow-hidden flex items-center justify-center border-b border-border-soft';
+      
+      // Placeholder Icon (jika render PDF gagal/lambat)
+      const placeholder = document.createElement('i');
+      placeholder.setAttribute('data-lucide', 'file-text');
+      placeholder.className = 'h-12 w-12 text-border-soft';
+      coverWrapper.append(placeholder);
 
-      const content = document.createElement('span');
-      content.className = 'flex min-w-0 flex-1 flex-col gap-2';
+      // Container untuk Canvas PDF (Thumbnail)
+      const canvasContainer = document.createElement('div');
+      canvasContainer.className = 'absolute inset-0 w-full h-full flex items-center justify-center bg-white';
+      coverWrapper.append(canvasContainer);
 
-      const title = document.createElement('span');
-      title.className = 'truncate text-sm font-medium text-text-main';
+      // Badge Status (Overlay di pojok kanan atas cover)
+      if (modul.status !== 'ready') {
+        const badge = document.createElement('div');
+        badge.className = 'absolute top-2 right-2 bg-brand-red text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm z-10 uppercase tracking-wider';
+        badge.textContent = modul.status === 'failed' ? 'Gagal' : 'Proses';
+        coverWrapper.append(badge);
+      }
+
+      // Area Info (Judul, Tag, Meta)
+      const info = document.createElement('div');
+      info.className = 'p-4 flex flex-col flex-1 gap-2';
+
+      const title = document.createElement('h3');
+      title.className = 'text-sm font-semibold text-text-main leading-snug line-clamp-2 group-hover:text-brand-blue transition-colors';
       title.textContent = modul.title;
 
-      const badgeRow = document.createElement('span');
-      badgeRow.className = 'flex';
-      badgeRow.append(makeStatusBadge(modul.status));
-      content.append(title, badgeRow);
-      card.append(icon, content);
-      card.addEventListener('click', () => openModule(modul.id, modul.title));
-      item.append(card);
-      moduleList.append(item);
-    }
+      const tagRow = document.createElement('div');
+      tagRow.className = 'flex items-center gap-1.5';
+      const tag = document.createElement('span');
+      tag.className = 'inline-flex items-center rounded bg-[#3B82F6] px-2 py-0.5 text-[11px] font-medium text-white';
+      tag.textContent = 'Modul'; // Atau ambil dari field kategori di database nanti
+      tagRow.append(tag);
 
+      const metaRow = document.createElement('div');
+      metaRow.className = 'flex items-center justify-between mt-auto pt-2';
+      
+      const views = document.createElement('div');
+      views.className = 'flex items-center gap-1 text-xs text-text-muted';
+      views.innerHTML = `<i data-lucide="eye" class="h-3.5 w-3.5"></i> <span>0</span>`; // Placeholder angka view
+      
+      const date = document.createElement('span');
+      date.className = 'text-xs text-text-muted';
+      date.textContent = formatDate(modul.created_at);
+
+      metaRow.append(views, date);
+      info.append(title, tagRow, metaRow);
+      
+      card.append(coverWrapper, info);
+      moduleList.append(card);
+
+      // Generate Cover Thumbnail Secara Async (Tidak memblokir UI)
+      generateCoverThumbnail(modul.id, modul.status, canvasContainer);
+    }
     refreshIcons();
   } catch (error) {
-    moduleCount.textContent = '0';
-    moduleStatus.replaceChildren();
-    const errorIcon = document.createElement('i');
-    errorIcon.setAttribute('data-lucide', 'alert-circle');
-    errorIcon.className = 'mr-1 inline-block h-4 w-4 align-[-3px] text-brand-red';
-    errorIcon.setAttribute('aria-hidden', 'true');
-    moduleStatus.append(errorIcon, document.createTextNode(`Daftar modul gagal dimuat: ${error.message}`));
-    refreshIcons();
+    moduleStatus.textContent = `Gagal memuat katalog: ${error.message}`;
   }
 }
 
+// Fungsi pembantu untuk membuat gambar cover dari halaman 1 PDF
+async function generateCoverThumbnail(id, status, container) {
+  if (status !== 'ready') return; // Jangan render jika PDF belum siap
+  try {
+    const metadata = await fetchJson(`/api/modul/${encodeURIComponent(id)}/meta`);
+    if (!metadata.stream_url) return;
+
+    const response = await fetch(metadata.stream_url);
+    if (!response.ok) return;
+    
+    const arrayBuffer = await response.arrayBuffer();
+    const pdf = await globalThis.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const page = await pdf.getPage(1); // Hanya ambil halaman 1
+
+    // Render ke canvas ukuran rendah untuk performa
+    const viewport = page.getViewport({ scale: 1 });
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    
+    // Sesuaikan skala agar pas di container (maksimal lebar 400px untuk kualitas cukup)
+    const scale = Math.min(400 / viewport.width, 1.5); 
+    const scaledViewport = page.getViewport({ scale });
+    
+    canvas.width = scaledViewport.width;
+    canvas.height = scaledViewport.height;
+    canvas.className = 'w-full h-full object-cover'; // Agar mengisi kotak 3:4
+
+    await page.render({ canvasContext: context, viewport: scaledViewport }).promise;
+    
+    container.replaceChildren(canvas); // Ganti placeholder dengan gambar PDF asli
+  } catch (err) {
+    console.warn(`Gagal render cover untuk modul ${id}`, err);
+    // Biarkan placeholder icon yang tampil
+  }
+}
+
+// --- BUKA & RENDER VIEWER ---
+
 async function openModule(id, title) {
+  // Transisi UI
+  katalogSection.classList.add('hidden');
+  viewerSection.classList.remove('hidden');
+  viewerSection.classList.add('flex');
+  viewerTitle.textContent = title;
+  
   const requestId = ++activeRequest;
   pdfPages.replaceChildren();
-  setViewerState('loader-2', `Memuat "${title}"…`);
+  setViewerState('loader-2', 'Memuat dokumen...');
   viewerStatus.textContent = '';
 
   try {
     const metadata = await fetchJson(`/api/modul/${encodeURIComponent(id)}/meta`);
     if (requestId !== activeRequest) return;
-    if (!metadata.stream_url) {
-      throw new Error('URL streaming tidak tersedia.');
-    }
+    if (!metadata.stream_url) throw new Error('URL streaming tidak tersedia.');
 
     const response = await fetch(metadata.stream_url, { cache: 'no-store' });
-    if (!response.ok) {
-      throw new Error(`PDF gagal diambil (${response.status}).`);
-    }
+    if (!response.ok) throw new Error(`PDF gagal diambil (${response.status}).`);
+    
     const arrayBuffer = await response.arrayBuffer();
     const pdf = await globalThis.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     if (requestId !== activeRequest) return;
 
+    // Sembunyikan state loading
+    viewerState.classList.add('hidden');
+    
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
       const page = await pdf.getPage(pageNumber);
       const baseViewport = page.getViewport({ scale: 1 });
       const availableWidth = Math.max(280, viewer.clientWidth - 64);
       const viewport = page.getViewport({ scale: availableWidth / baseViewport.width });
+      
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       canvas.width = Math.ceil(viewport.width);
       canvas.height = Math.ceil(viewport.height);
       canvas.setAttribute('aria-label', `Halaman ${pageNumber} dari ${pdf.numPages}`);
       pdfPages.append(canvas);
+      
       await page.render({ canvasContext: context, viewport }).promise;
+      
       if (requestId !== activeRequest) {
         pdfPages.replaceChildren();
         return;
       }
     }
-
-    setViewerState('check-circle', `${pdf.numPages} halaman siap dibaca.`);
-    viewerStatus.textContent = title;
     viewer.focus();
   } catch (error) {
     if (requestId !== activeRequest) return;
     pdfPages.replaceChildren();
     setViewerState('alert-circle', 'Modul gagal ditampilkan.', error.message);
-    viewerStatus.textContent = '';
   }
 }
 
-// Blokir klik kanan HANYA di area viewer
+// --- EVENT LISTENERS ---
+
+btnBack.addEventListener('click', () => {
+  activeRequest++; // Batalkan render jika masih berjalan
+  viewerSection.classList.add('hidden');
+  viewerSection.classList.remove('flex');
+  katalogSection.classList.remove('hidden');
+});
+
 viewer.addEventListener('contextmenu', (event) => event.preventDefault());
 
-// Blokir Ctrl/Cmd+S/P di seluruh dokumen (bukan hanya viewer)
 document.addEventListener('keydown', (event) => {
   const key = event.key.toLowerCase();
   if ((event.ctrlKey || event.metaKey) && (key === 's' || key === 'p')) {

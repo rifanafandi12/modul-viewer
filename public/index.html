@@ -20,7 +20,7 @@
             'text-main': '#212121',
             'text-muted': '#666666',
             'border-soft': '#E0E0E0',
-            'bg-soft': '#F8F9FA'
+            'bg-soft': '#F3F4F6' /* Latar belakang abu-abu muda untuk halaman */
           },
           fontFamily: {
             sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif']
@@ -38,44 +38,57 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <script type="module" src="/js/viewer.js"></script>
 </head>
-<body class="min-h-screen bg-white font-sans text-base leading-relaxed text-text-main">
-  <header class="h-16 bg-gradient-to-b from-brand-blue to-brand-blue-dk text-white">
+<body class="min-h-screen bg-bg-soft font-sans text-base leading-relaxed text-text-main flex flex-col">
+  
+  <!-- Header: Tanpa Gradient, Logo di Kiri -->
+  <header class="h-16 bg-white border-b border-border-soft sticky top-0 z-10">
     <div class="mx-auto flex h-full max-w-screen-2xl items-center justify-between px-4 md:px-6">
       <div class="flex items-center gap-3">
-        <i data-lucide="book-open" class="h-6 w-6 shrink-0" aria-hidden="true"></i>
-        <div class="leading-tight">
-          <h1 class="text-lg font-semibold">Modul Pembelajaran</h1>
-          <p class="hidden text-sm text-white/85 sm:block">Lembaga Kursus dan Pelatihan</p>
-        </div>
+        <!-- Ganti path logo jika perlu -->
+        <img src="/img/logo-1.png" alt="Logo Lembaga Kursus dan Pelatihan" class="h-8 md:h-10 w-auto object-contain">
       </div>
-      <span class="text-sm text-white/85">Perpustakaan digital</span>
+      <div class="text-sm font-medium text-text-muted hidden sm:block">
+        Perpustakaan Digital
+      </div>
     </div>
   </header>
 
-  <main class="mx-auto grid min-h-[calc(100vh-4rem)] max-w-screen-2xl grid-cols-1 md:grid-cols-[18rem_minmax(0,1fr)]">
-    <aside class="border-b border-border-soft bg-white p-5 md:border-b-0 md:border-r md:p-6" aria-labelledby="module-heading">
-      <div class="mb-4 flex items-center justify-between gap-3">
-        <h2 id="module-heading" class="text-lg font-semibold">Daftar Modul</h2>
-        <span id="module-count" class="rounded border border-border-soft px-2 py-0.5 text-sm text-text-muted">0</span>
+  <main class="flex-1 mx-auto w-full max-w-screen-2xl px-4 md:px-6 py-6 flex flex-col gap-6 relative">
+    
+    <!-- Tampilan Daftar Modul (Katalog) -->
+    <div id="katalog-section" class="flex flex-col gap-4">
+      <div class="flex items-center justify-between border-b border-border-soft pb-3">
+        <h1 class="text-xl md:text-2xl font-bold text-text-main flex items-center gap-2">
+          <i data-lucide="library" class="h-6 w-6 text-brand-blue"></i>
+          Katalog Modul
+        </h1>
+        <div id="module-status" class="text-sm text-text-muted" role="status"></div>
       </div>
-      <div id="module-status" class="mb-3 text-sm text-text-muted" role="status"></div>
-      <ul id="module-list" class="flex flex-col gap-2"></ul>
-    </aside>
+      
+      <!-- Grid Container -->
+      <div id="module-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5"></div>
+    </div>
 
-    <section class="min-w-0 p-4 md:p-6" aria-labelledby="viewer-heading">
-      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 id="viewer-heading" class="text-lg font-semibold">Penampil Modul</h2>
-        <p id="viewer-status" class="text-sm text-text-muted" role="status"></p>
+    <!-- Tampilan Viewer PDF (Akan ditampilkan via JS saat modul diklik) -->
+    <div id="viewer-section" class="hidden flex-col gap-4 w-full">
+      <div class="flex items-center justify-between border-b border-border-soft pb-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <button id="btn-back" class="p-2 rounded-full hover:bg-white border border-transparent hover:border-border-soft transition-colors text-text-muted hover:text-brand-blue" aria-label="Kembali ke katalog">
+            <i data-lucide="arrow-left" class="h-5 w-5"></i>
+          </button>
+          <h2 id="viewer-title" class="text-lg md:text-xl font-bold text-text-main truncate">Memuat...</h2>
+        </div>
+        <p id="viewer-status" class="text-sm text-text-muted hidden md:block" role="status"></p>
       </div>
-      <div id="viewer" class="min-h-[60vh] overflow-auto rounded-lg border border-border-soft bg-bg-soft p-4 md:p-6" tabindex="0" aria-label="Area pembaca PDF">
-        <div id="viewer-state" class="flex min-h-[55vh] flex-col items-center justify-center gap-2 text-center text-text-muted">
-          <i data-lucide="folder-open" class="h-10 w-10" aria-hidden="true"></i>
-          <p class="font-medium">Belum ada modul yang dibuka.</p>
-          <p class="text-sm">Pilih modul dari daftar untuk mulai membaca.</p>
+      
+      <div id="viewer" class="min-h-[70vh] overflow-auto rounded-lg border border-border-soft bg-white p-4 md:p-8 relative" tabindex="0" aria-label="Area pembaca PDF">
+        <div id="viewer-state" class="flex min-h-[60vh] flex-col items-center justify-center gap-2 text-center text-text-muted">
+          <!-- State default -->
         </div>
         <div id="pdf-pages" class="flex flex-col items-center gap-6"></div>
       </div>
-    </section>
+    </div>
+
   </main>
 </body>
 </html>

@@ -40,4 +40,25 @@ if [ "$TRAVERSAL_STATUS" = "200" ]; then
 fi
 echo "    path traversal ditolak (status $TRAVERSAL_STATUS)."
 
+echo "==> Cek APP_SECRET bukan placeholder..."
+if node -e "import('./services/token.js').then(() => process.exit(0)).catch(() => process.exit(1))" 2>/dev/null; then
+  : # OK
+else
+  echo "FAIL: services/token.js gagal import — cek APP_SECRET di .env"
+  exit 1
+fi
+
+# Tes: set APP_SECRET ke placeholder, pastikan import gagal
+PLACEHOLDER_TEST=$(APP_SECRET=CHANGEME_GENERATE_WITH_NODE_CRYPTO node -e "
+  import('./services/token.js')
+    .then(() => { console.log('ACCEPTED'); process.exit(0); })
+    .catch((e) => { console.log('REJECTED: ' + e.message.slice(0, 50)); process.exit(0); })
+" 2>/dev/null)
+
+if echo "$PLACEHOLDER_TEST" | grep -q 'ACCEPTED'; then
+  echo "FAIL: APP_SECRET placeholder diterima, seharusnya ditolak"
+  exit 1
+fi
+echo "    placeholder ditolak."
+
 echo "==> Semua verifikasi lulus."

@@ -4,12 +4,42 @@ dotenv.config();
 
 const SECRET = process.env.APP_SECRET;
 
-if (!SECRET || SECRET.length < 32) {
-  throw new Error(
-    'APP_SECRET tidak valid: harus di-set di .env dan minimal 32 karakter. ' +
-    'Generate dengan: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
-  );
+const FORBIDDEN_SECRETS = new Set([
+  'CHANGEME_GENERATE_WITH_NODE_CRYPTO',
+  'default-secret',
+  'ganti-dengan-string-acak-panjang-minimal-32-karakter',
+  'ubah-ini-jadi-string-acak-minimal-32-karakter'
+]);
+
+function validateSecret(secret) {
+  if (!secret || typeof secret !== 'string') {
+    throw new Error(
+      'APP_SECRET tidak di-set di .env. ' +
+      'Generate dengan: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
+    );
+  }
+  if (secret.length < 32) {
+    throw new Error(
+      `APP_SECRET terlalu pendek (${secret.length} karakter, minimal 32). ` +
+      'Generate dengan: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
+    );
+  }
+  if (FORBIDDEN_SECRETS.has(secret)) {
+    throw new Error(
+      'APP_SECRET masih memakai nilai placeholder dari .env.example atau contoh. ' +
+      'Ganti dengan string acak. Generate dengan: ' +
+      'node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
+    );
+  }
+  if (/^(.)\1+$/.test(secret)) {
+    throw new Error(
+      'APP_SECRET terdiri dari satu karakter berulang. ' +
+      'Gunakan string acak dari crypto.randomBytes.'
+    );
+  }
 }
+
+validateSecret(SECRET);
 
 export function generateToken(payload, ttlSeconds = 300) {
   const data = { ...payload, exp: Date.now() + ttlSeconds * 1000 };

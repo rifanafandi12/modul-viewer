@@ -74,6 +74,11 @@ tanpa persetujuan manusia.
 - Setelah menyelesaikan tugas dan lulus review manusia, minta manusia
   untuk commit. Jangan commit sendiri.
 
+  ### Render Thumbnail Cover (Fase 3d)
+- Saat merender daftar modul, JANGAN render PDF halaman 1 secara berurutan yang memblokir UI (await di dalam loop utama).
+- Gunakan pemanggilan fungsi terpisah yang berjalan secara asinkron (fire-and-forget) untuk setiap kartu, sehingga grid muncul seketika dan cover menyusul.
+- Jika PDF berstatus bukan 'ready' atau gagal dimuat, biarkan placeholder ikon yang tampil. Jangan melempar error ke UI utama.
+
 ### Keamanan
 - Dilarang menulis secret, token, atau password ke log.
 - Dilarang mengekspos stack trace ke response produksi.
