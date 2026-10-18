@@ -25,6 +25,8 @@
     "pdf-lib": "^1.17.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.4"
+    "@tailwindcss/cli": "^4.3.3",
+    "nodemon": "^3.1.4",
+    "tailwindcss": "^4.3.3"
   }
 }

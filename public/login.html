@@ -3,81 +3,86 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#F3F4F6">
-  <title>Masuk Admin - Perpustakaan Modul</title>
-  <link rel="stylesheet" href="/css/style.css">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            'brand-blue': '#1E5AA8',
-            'brand-red': '#D32F2F',
-            'brand-green': '#4CAF50',
-            'text-main': '#212121',
-            'text-muted': '#666666',
-            'border-soft': '#E0E0E0',
-            'bg-soft': '#F3F4F6'
-          },
-          fontFamily: {
-            sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif']
-          }
-        }
-      }
-    };
-  </script>
+  <title>Login Admin - Lembaga Kursus dan Pelatihan</title>
+  <link rel="stylesheet" href="/css/tailwind.css">
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="/js/auth.js" defer></script>
 </head>
-<body class="min-h-screen bg-bg-soft font-sans text-text-main">
-  <header class="border-b border-border-soft bg-white">
-    <div class="mx-auto flex h-16 max-w-6xl items-center px-4 sm:px-6">
-      <a href="/" class="inline-flex items-center gap-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue" aria-label="Perpustakaan Digital, ke katalog">
-        <img src="/img/logo-1.png" alt="Logo Lembaga Kursus dan Pelatihan" class="h-9 w-auto object-contain">
-        <span class="hidden text-sm font-semibold text-text-main sm:inline">Perpustakaan Digital</span>
-      </a>
-    </div>
-  </header>
+<body class="min-h-screen bg-bg-soft font-sans text-base leading-relaxed text-text-main flex items-center justify-center p-4">
 
-  <main class="mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-6xl items-center justify-center px-4 py-10 sm:px-6">
-    <section class="w-full max-w-md rounded-lg border border-border-soft bg-white p-6 sm:p-8" aria-labelledby="login-title">
-      <div class="mb-7">
-        <div class="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-bg-soft text-brand-blue" aria-hidden="true">
-          <i data-lucide="lock-keyhole" class="h-5 w-5"></i>
-        </div>
-        <p class="mb-1 text-sm font-medium text-brand-blue">Area administrator</p>
-        <h1 id="login-title" class="text-2xl font-bold tracking-tight text-text-main">Masuk ke dashboard</h1>
-        <p class="mt-2 text-sm leading-6 text-text-muted">Gunakan akun administrator untuk mengelola perpustakaan modul.</p>
+  <div class="w-full max-w-sm bg-white rounded-lg border border-border-soft shadow-sm p-6 md:p-8">
+
+    <!-- Logo Brand -->
+    <div class="flex justify-center mb-6">
+      <img src="/img/logo-1.png" alt="Logo Lembaga Kursus dan Pelatihan" class="h-12 w-auto object-contain">
+    </div>
+
+    <h1 class="text-xl font-bold text-center mb-6">Masuk ke Portal Admin</h1>
+
+    <!-- Form Login -->
+    <form id="login-form" class="flex flex-col gap-4">
+      <div>
+        <label for="username" class="block text-sm font-medium text-text-main mb-1">Username</label>
+        <input type="text" id="username" name="username" required autocomplete="username"
+               class="w-full rounded border border-border-soft px-3 py-2 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue transition-colors">
       </div>
 
-      <form id="login-form" class="space-y-5" novalidate>
-        <div>
-          <label for="username" class="mb-2 block text-sm font-medium text-text-main">Username</label>
-          <input id="username" name="username" type="text" autocomplete="username" required maxlength="50"
-            class="block w-full rounded-lg border border-border-soft bg-white px-3 py-2.5 text-sm text-text-main outline-none transition focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
-            placeholder="Masukkan username">
-        </div>
-        <div>
-          <label for="password" class="mb-2 block text-sm font-medium text-text-main">Password</label>
-          <input id="password" name="password" type="password" autocomplete="current-password" required
-            class="block w-full rounded-lg border border-border-soft bg-white px-3 py-2.5 text-sm text-text-main outline-none transition focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20"
-            placeholder="Masukkan password">
-        </div>
+      <div>
+        <label for="password" class="block text-sm font-medium text-text-main mb-1">Password</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password"
+               class="w-full rounded border border-border-soft px-3 py-2 text-sm focus:border-brand-blue focus:outline-none focus:ring-1 focus:ring-brand-blue transition-colors">
+      </div>
 
-        <p id="login-error" class="hidden rounded-lg border border-brand-red/30 bg-white px-3 py-2.5 text-sm text-brand-red" role="alert"></p>
+      <!-- Pesan Error -->
+      <div id="login-error" class="hidden text-sm text-brand-red bg-brand-red-lt p-2 rounded text-center"></div>
 
-        <button id="login-submit" type="submit"
-          class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-blue px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-blue/90 focus:outline-none focus:ring-2 focus:ring-brand-blue focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60">
-          <span id="login-submit-label">Masuk</span>
-          <i data-lucide="arrow-right" class="h-4 w-4" aria-hidden="true"></i>
-        </button>
-      </form>
+      <button type="submit" id="btn-submit"
+              class="mt-2 w-full rounded bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue-dk focus:outline-none focus:ring-2 focus:ring-brand-blue focus:ring-offset-2 transition-colors disabled:opacity-70">
+        Masuk
+      </button>
+    </form>
 
-      <p class="mt-6 border-t border-border-soft pt-5 text-center text-sm text-text-muted">
-        <a href="/" class="font-medium text-brand-blue hover:underline">Kembali ke katalog</a>
-      </p>
-    </section>
-  </main>
+  </div>
+
+  <script>
+    const form = document.getElementById('login-form');
+    const errorDiv = document.getElementById('login-error');
+    const btnSubmit = document.getElementById('btn-submit');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorDiv.classList.add('hidden');
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = 'Memproses...';
+
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+          credentials: 'same-origin'
+        });
+
+        if (res.ok) {
+          window.location.href = '/admin/';
+        } else {
+          const data = await res.json().catch(() => ({}));
+          errorDiv.textContent = data.error || 'Username atau password salah.';
+          errorDiv.classList.remove('hidden');
+        }
+      } catch (err) {
+        errorDiv.textContent = 'Terjadi kesalahan jaringan. Coba lagi.';
+        errorDiv.classList.remove('hidden');
+      } finally {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Masuk';
+      }
+    });
+
+    // Inisialisasi ikon jika ada (Lucide)
+    if (globalThis.lucide) globalThis.lucide.createIcons();
+  </script>
 </body>
 </html>
