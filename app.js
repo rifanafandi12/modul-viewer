@@ -106,14 +106,13 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ error: err.message || 'Terjadi kesalahan server' });
 });
 
-if (process.env.NODE_ENV !== 'production' && process.env.PORT) {
-  app.listen(process.env.PORT, () => {
-    console.log(`Server jalan di http://localhost:${process.env.PORT}`);
-  });
-}
+const PORT = process.env.PORT || 3000;
 
-testConnection().catch((err) => {
-  console.error('Gagal konek MySQL:', err.message);
+app.listen(PORT, async () => {
+  console.log(`Server jalan di http://localhost:${PORT}`);
+  try {
+    await testConnection();
+  } catch (err) {
+    console.error('Gagal konek MySQL:', err.message);
+  }
 });
-
-export default app;
