@@ -1,5 +1,6 @@
 import express from 'express';
 import session from 'express-session';
+import MySQLStore from 'express-mysql-session';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
@@ -50,10 +51,25 @@ if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32) {
 
 app.set('trust proxy', 1);
 
+const MySQLSessionStore = MySQLStore(session);
+const sessionStore = new MySQLSessionStore({
+  host: process.env.DB_HOST,
+  port: Number(process.env.DB_PORT || 3306),
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  clearExpired: true,
+  createDatabaseTable: true
+});
+
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
+  store: sessionStore,
   name: 'modul_viewer.sid',
   secret: process.env.SESSION_SECRET,
   resave: false,
