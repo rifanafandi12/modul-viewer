@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import { testConnection } from './services/db.js';
 import modulRouter from './routes/modul.js';
 import authRouter from './routes/auth.js';
+import uploadRouter from './routes/upload.js';
 
 dotenv.config();
 
@@ -16,6 +17,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const STORAGE_PATH = path.resolve(__dirname, process.env.STORAGE_PATH || './storage');
 const OPTIMIZED_DIR = path.join(STORAGE_PATH, 'optimized');
 const ORIGINAL_DIR = path.join(STORAGE_PATH, 'original');
+const TMP_DIR = path.resolve(__dirname, process.env.TMP_PATH || './tmp');
+const PUBLIC_DIR = path.join(__dirname, 'public');
+const TMP_RELATIVE_TO_PUBLIC = path.relative(PUBLIC_DIR, TMP_DIR);
 
 if (!fs.existsSync(OPTIMIZED_DIR)) {
   console.error(`FATAL: Folder optimized tidak ada: ${OPTIMIZED_DIR}`);
@@ -25,6 +29,16 @@ if (!fs.existsSync(ORIGINAL_DIR)) {
   console.error(`FATAL: Folder original tidak ada: ${ORIGINAL_DIR}`);
   process.exit(1);
 }
+if (
+  TMP_RELATIVE_TO_PUBLIC === '' ||
+  (TMP_RELATIVE_TO_PUBLIC !== '..' &&
+    !TMP_RELATIVE_TO_PUBLIC.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(TMP_RELATIVE_TO_PUBLIC))
+) {
+  console.error('FATAL: TMP_PATH harus berada di luar folder public.');
+  process.exit(1);
+}
+fs.mkdirSync(TMP_DIR, { recursive: true });
 
 const app = express();
 
@@ -55,9 +69,11 @@ app.use(session({
 // Ekspos path yang sudah di-resolve ke route — HARUS sebelum mount router
 app.locals.optimizedDir = OPTIMIZED_DIR;
 app.locals.originalDir = ORIGINAL_DIR;
+app.locals.tmpDir = TMP_DIR;
 
 app.use('/api/modul', modulRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/modul', uploadRouter);
 
 app.get('/health', (req, res) => {
   res.json({ ok: true, env: process.env.NODE_ENV || 'development' });

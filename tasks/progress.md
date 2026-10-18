@@ -12,7 +12,7 @@
 - [x] Timpa `public/css/style.css`: styling cover 3:4.
 - [x] Uji manual di browser: cover muncul, viewer berfungsi, anti-unduh aman.
 
-## Fase 4a: Autentikasi Admin (Backend) ⬜ (TUGAS SAAT INI)
+## Fase 4a: Autentikasi Admin (Backend) ✅
 - [x] Update `docs/schema.sql` dengan tabel `users` (sudah tersedia; seed admin valid untuk `admin123`)
 - [x] Install `bcrypt` dan `express-session` (sudah tersedia)
 - [x] Buat `services/auth.js` (verifikasi password)
@@ -28,5 +28,11 @@
 - [x] Buat dashboard `public/admin/index.html` dan `public/js/admin.js` dengan pemeriksaan sesi dan tabel modul responsif.
 - [x] Tabel memakai wrapper `overflow-x-auto`; `public/css/style.css` tidak diubah.
 - [x] Verifikasi otomatis dan tes endpoint `/api/auth/me` lulus.
-## Fase 4c: Fitur Upload & CRUD Modul ⬜
+## Fase 4c: Fitur Upload & CRUD Modul 🟨 (TUGAS SAAT INI)
+- [x] Tambah endpoint `POST /api/modul` dengan `requireAuth` dan validasi file PDF/Word/PowerPoint.
+- [x] Batasi upload hingga 20 MB dan simpan sementara di `tmp/` sebelum pindah ke `storage/original/` memakai nama unik.
+- [x] Simpan modul dan job kompresi `pending` dalam transaksi; hapus file jika transaksi gagal.
+- [x] Tes curl upload tanpa sesi (401) dan sebagai admin (201, job pending).
+- [x] Verifikasi `scripts/verify.sh` lulus di port alternatif karena port 3000 sedang dipakai.
+- [ ] Fitur CRUD modul lainnya.
 ## Fase 5: Konversi Office ⬜

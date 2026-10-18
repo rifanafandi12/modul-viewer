@@ -15,6 +15,19 @@ CREATE TABLE IF NOT EXISTS modules (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS jobs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  module_id INT NOT NULL,
+  type ENUM('compress') NOT NULL,
+  status ENUM('pending','processing','done','failed') NOT NULL DEFAULT 'pending',
+  error TEXT DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  started_at TIMESTAMP NULL DEFAULT NULL,
+  finished_at TIMESTAMP NULL DEFAULT NULL,
+  INDEX idx_jobs_module_id (module_id),
+  INDEX idx_jobs_status_created_at (status, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(50) NOT NULL UNIQUE,
