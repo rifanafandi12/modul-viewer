@@ -13,13 +13,14 @@
 - [x] Uji manual di browser: cover muncul, viewer berfungsi, anti-unduh aman.
 
 ## Fase 4a: Autentikasi Admin (Backend) ⬜ (TUGAS SAAT INI)
-- [ ] Update `docs/schema.sql` dengan tabel `users`
-- [ ] Install `bcrypt` dan `express-session`
-- [ ] Buat `services/auth.js` (verifikasi password)
-- [ ] Buat `routes/auth.js` (endpoint login/logout)
-- [ ] Buat middleware `requireAuth`
-- [ ] Update `app.js` untuk mount `express-session` dan route auth
-- [ ] `npm run verify` lulus
+- [x] Update `docs/schema.sql` dengan tabel `users` (sudah tersedia; seed admin valid untuk `admin123`)
+- [x] Install `bcrypt` dan `express-session` (sudah tersedia)
+- [x] Buat `services/auth.js` (verifikasi password)
+- [x] Buat `routes/auth.js` (endpoint login/logout)
+- [x] Buat middleware `requireAuth`
+- [x] Update `app.js` untuk mount `express-session` dan route auth
+- [x] Tambahkan dan jalankan `scripts/test-auth.sh` (login gagal/berhasil dan akses route terlindungi)
+- [x] `npm run verify` lulus
 
 ## Fase 4b: UI Login & Dashboard Admin ⬜
 ## Fase 4c: Fitur Upload & CRUD Modul ⬜

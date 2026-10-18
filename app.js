@@ -1,10 +1,12 @@
 import express from 'express';
+import session from 'express-session';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { testConnection } from './services/db.js';
 import modulRouter from './routes/modul.js';
+import authRouter from './routes/auth.js';
 
 dotenv.config();
 
@@ -26,15 +28,36 @@ if (!fs.existsSync(ORIGINAL_DIR)) {
 
 const app = express();
 
+if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32) {
+  console.error('FATAL: SESSION_SECRET harus berisi minimal 32 karakter.');
+  process.exit(1);
+}
+
+app.set('trust proxy', 1);
+
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(session({
+  name: 'modul_viewer.sid',
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 60 * 60 * 1000,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/'
+  }
+}));
 
 // Ekspos path yang sudah di-resolve ke route — HARUS sebelum mount router
 app.locals.optimizedDir = OPTIMIZED_DIR;
 app.locals.originalDir = ORIGINAL_DIR;
 
 app.use('/api/modul', modulRouter);
+app.use('/api/auth', authRouter);
 
 app.get('/health', (req, res) => {
   res.json({ ok: true, env: process.env.NODE_ENV || 'development' });
