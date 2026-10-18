@@ -12,7 +12,6 @@ pnpm-debug.log*
 
 # Storage (file pengguna, jangan pernah commit)
 storage/original/*
-storage/optimized/*
 !storage/original/.gitkeep
 !storage/optimized/.gitkeep
 !storage/optimized/contoh.pdf
