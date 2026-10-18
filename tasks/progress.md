@@ -37,4 +37,14 @@
 - [x] Tambah endpoint `DELETE /api/modul/:id` terproteksi, dengan staging file dan rollback jika database gagal.
 - [x] Tes curl upload dan hapus tanpa sesi (401), serta upload dan hapus sebagai admin; tes tidak mengasumsikan status `ready`.
 - [x] Verifikasi `scripts/verify.sh` lulus di port alternatif karena port 3000 sedang dipakai.
+## Fase 4d: Worker Kompresi PDF ✅
+- [x] Gunakan SDK iLovePDF task `compress` untuk mengunggah PDF asli dan meminta kompresi `recommended`.
+- [x] Validasi hasil unduhan dengan magic number `%PDF-`, tulis ke path sementara worker, dan bersihkan task remote.
+- [x] Tambahkan `ILOVEPDF_PUBLIC_KEY` dan `ILOVEPDF_SECRET_KEY` kosong ke `.env.example`.
+- [x] Tambah `workers/queue.js` dengan klaim job transaksional, loop polling 5 detik, heartbeat, pemulihan job `processing` yang stale, serta catch menyeluruh per job.
+- [x] Simpan `err.message` ke `jobs.error`, ubah job/modul menjadi `failed`, dan log error lengkap per job.
+- [x] Tandai modul/job `ready`/`done` setelah output final tersedia; tandai Word/PPT `failed` dengan pesan konversi belum didukung.
+- [x] Tambahkan perintah `npm run worker`; sintaks worker dan pemeriksaan diff lulus.
+- [x] `npm run verify` mengembalikan exit code 0; endpoint yang diuji terlayani, tetapi startup server uji melaporkan port 3000 sudah digunakan.
+- [x] Sintaks layanan dan import SDK iLovePDF berhasil diperiksa; tes verifikasi tidak menjalankan kompresi API langsung.
 ## Fase 5: Konversi Office ⬜

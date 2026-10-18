@@ -6,13 +6,15 @@
   "scripts": {
     "dev": "nodemon app.js",
     "start": "node app.js",
-    "verify": "bash scripts/verify.sh"
+    "verify": "bash scripts/verify.sh",
+    "worker": "node workers/queue.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "Penampil modul dengan streaming anti-unduh",
   "dependencies": {
+    "@ilovepdf/ilovepdf-nodejs": "^0.3.1",
     "bcrypt": "^6.0.0",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
