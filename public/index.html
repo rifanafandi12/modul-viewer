@@ -3,7 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1E5AA8">
   <title>Penampil Modul - Lembaga Kursus dan Pelatihan</title>
+  <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="/css/style.css">
 
   <link rel="stylesheet" href="/css/tailwind.css">
@@ -70,5 +72,12 @@
     </div>
 
   </main>
+  <script>
+    window.addEventListener('load', () => {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
+      }
+    });
+  </script>
 </body>
 </html>

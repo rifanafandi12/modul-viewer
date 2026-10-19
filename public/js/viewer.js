@@ -8,6 +8,9 @@ const viewer = document.querySelector('#viewer');
 const viewerStatus = document.querySelector('#viewer-status');
 const viewerState = document.querySelector('#viewer-state');
 const pdfPages = document.querySelector('#pdf-pages');
+const OFFLINE_RENDER_CACHE = 'modul-viewer-rendered-v1';
+const MAX_OFFLINE_PAGES = 30;
+let offlineCacheQueue = Promise.resolve();
 let activeRequest = 0;
 
 // --- UTILITAS ---
@@ -20,6 +23,81 @@ async function fetchJson(url) {
 
 function refreshIcons() {
   if (globalThis.lucide) globalThis.lucide.createIcons();
+}
+
+// Buat URL sintetis same-origin sebagai kunci Cache API tanpa token streaming.
+function offlineCacheUrl(id, suffix) {
+  return new URL(`/offline-modul/${encodeURIComponent(String(id))}/${suffix}`, location.origin).href;
+}
+
+// Simpan metadata ringan modul agar halaman yang sudah dirender bisa ditemukan saat offline.
+async function cacheOfflineMetadata(id, title, pageCount) {
+  if (!('caches' in window)) return;
+  const cache = await caches.open(OFFLINE_RENDER_CACHE);
+  await cache.put(offlineCacheUrl(id, 'meta'), new Response(JSON.stringify({ id, title, pageCount }), {
+    headers: { 'Content-Type': 'application/json; charset=utf-8' }
+  }));
+}
+
+// Simpan maksimal 30 halaman pertama sebagai JPEG berkualitas 0.8 di bawah URL cache sintetis.
+async function cacheRenderedPage(id, pageNumber, canvas) {
+  if (pageNumber > MAX_OFFLINE_PAGES || !('caches' in window)) return;
+
+  const blob = await new Promise((resolve, reject) => {
+    canvas.toBlob((result) => {
+      if (result) resolve(result);
+      else reject(new Error('Canvas gagal dikonversi ke JPEG.'));
+    }, 'image/jpeg', 0.8);
+  });
+  const cache = await caches.open(OFFLINE_RENDER_CACHE);
+  await cache.put(offlineCacheUrl(id, `page/${pageNumber}`), new Response(blob, {
+    headers: { 'Content-Type': 'image/jpeg' }
+  }));
+}
+
+// Proses konversi JPEG satu halaman demi satu halaman agar pekerjaan cache tidak menumpuk di ponsel.
+function queueRenderedPage(id, pageNumber, canvas) {
+  if (pageNumber > MAX_OFFLINE_PAGES) return;
+  offlineCacheQueue = offlineCacheQueue
+    .then(() => cacheRenderedPage(id, pageNumber, canvas))
+    .catch(() => {});
+}
+
+// Muat raster halaman tersimpan ke canvas tanpa meminta file PDF atau token streaming.
+async function renderOfflineModule(id, title, requestId) {
+  if (!('caches' in window)) return false;
+
+  const cache = await caches.open(OFFLINE_RENDER_CACHE);
+  const metadataResponse = await cache.match(offlineCacheUrl(id, 'meta'));
+  if (!metadataResponse) return false;
+
+  const metadata = await metadataResponse.json();
+  const pageLimit = Math.min(Number(metadata.pageCount) || 0, MAX_OFFLINE_PAGES);
+  let renderedCount = 0;
+
+  for (let pageNumber = 1; pageNumber <= pageLimit; pageNumber += 1) {
+    if (requestId !== activeRequest) return true;
+    const pageResponse = await cache.match(offlineCacheUrl(id, `page/${pageNumber}`));
+    if (!pageResponse) continue;
+
+    const bitmap = await createImageBitmap(await pageResponse.blob());
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    canvas.setAttribute('aria-label', `Halaman ${pageNumber} dari ${metadata.pageCount}`);
+    context.drawImage(bitmap, 0, 0);
+    bitmap.close();
+    pdfPages.append(canvas);
+    renderedCount += 1;
+  }
+
+  if (!renderedCount) return false;
+  viewerState.classList.add('hidden');
+  viewerTitle.textContent = metadata.title || title;
+  viewerStatus.textContent = `Offline: ${renderedCount} halaman tersimpan${metadata.pageCount > MAX_OFFLINE_PAGES ? ` (maksimal ${MAX_OFFLINE_PAGES} halaman pertama)` : ''}.`;
+  viewer.focus();
+  return true;
 }
 
 function formatDate(isoString) {
@@ -205,6 +283,8 @@ async function openModule(id, title) {
     const pdf = await globalThis.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     if (requestId !== activeRequest) return;
 
+    await cacheOfflineMetadata(id, title, pdf.numPages).catch(() => {});
+
     // Sembunyikan state loading
     viewerState.classList.add('hidden');
     
@@ -227,11 +307,24 @@ async function openModule(id, title) {
         pdfPages.replaceChildren();
         return;
       }
+
+      if (pageNumber <= MAX_OFFLINE_PAGES) {
+        queueRenderedPage(id, pageNumber, canvas);
+      }
     }
+    viewerStatus.textContent = pdf.numPages > MAX_OFFLINE_PAGES
+      ? `Halaman 1–${MAX_OFFLINE_PAGES} disimpan untuk akses offline.`
+      : 'Halaman disimpan untuk akses offline.';
     viewer.focus();
   } catch (error) {
     if (requestId !== activeRequest) return;
     pdfPages.replaceChildren();
+    viewerStatus.textContent = '';
+    try {
+      if (await renderOfflineModule(id, title, requestId)) return;
+    } catch {
+      if (requestId !== activeRequest) return;
+    }
     setViewerState('alert-circle', 'Modul gagal ditampilkan.', error.message);
   }
 }

@@ -1,0 +1,18 @@
+{
+  "id": "/",
+  "name": "Penampil Modul",
+  "short_name": "Modul",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F3F4F6",
+  "theme_color": "#1E5AA8",
+  "icons": [
+    {
+      "src": "/img/logo-1.png",
+      "sizes": "599x165",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
