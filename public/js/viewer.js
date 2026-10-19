@@ -31,10 +31,10 @@ function offlineCacheUrl(id, suffix) {
 }
 
 // Simpan metadata ringan modul agar halaman yang sudah dirender bisa ditemukan saat offline.
-async function cacheOfflineMetadata(id, title, pageCount) {
+async function cacheOfflineMetadata(id, title, pageCount, sourceSize) {
   if (!('caches' in window)) return;
   const cache = await caches.open(OFFLINE_RENDER_CACHE);
-  await cache.put(offlineCacheUrl(id, 'meta'), new Response(JSON.stringify({ id, title, pageCount }), {
+  await cache.put(offlineCacheUrl(id, 'meta'), new Response(JSON.stringify({ id, title, pageCount, sourceSize }), {
     headers: { 'Content-Type': 'application/json; charset=utf-8' }
   }));
 }
@@ -63,8 +63,8 @@ function queueRenderedPage(id, pageNumber, canvas) {
     .catch(() => {});
 }
 
-// Muat raster halaman tersimpan ke canvas tanpa meminta file PDF atau token streaming.
-async function renderOfflineModule(id, title, requestId) {
+// Baca metadata dan raster cache dengan key page yang sama seperti saat hasil render disimpan.
+async function readCachedModule(id, requireComplete = false) {
   if (!('caches' in window)) return false;
 
   const cache = await caches.open(OFFLINE_RENDER_CACHE);
@@ -73,31 +73,131 @@ async function renderOfflineModule(id, title, requestId) {
 
   const metadata = await metadataResponse.json();
   const pageLimit = Math.min(Number(metadata.pageCount) || 0, MAX_OFFLINE_PAGES);
-  let renderedCount = 0;
+  if (pageLimit < 1) return false;
+  const pages = [];
 
   for (let pageNumber = 1; pageNumber <= pageLimit; pageNumber += 1) {
-    if (requestId !== activeRequest) return true;
     const pageResponse = await cache.match(offlineCacheUrl(id, `page/${pageNumber}`));
-    if (!pageResponse) continue;
+    if (!pageResponse) {
+      if (requireComplete) return false;
+      continue;
+    }
+    pages.push({ pageNumber, response: pageResponse });
+  }
 
-    const bitmap = await createImageBitmap(await pageResponse.blob());
+  if (!pages.length) return false;
+  return { metadata, pages, complete: pages.length === pageLimit };
+}
+
+// Gambar raster cache ke canvas; halaman pertama langsung menggantikan state viewer.
+async function renderCachedModule(cachedModule, title, requestId, statusMessage) {
+  let renderedCount = 0;
+
+  for (const { pageNumber, response } of cachedModule.pages) {
+    if (requestId !== activeRequest) return false;
+
+    const bitmap = await createImageBitmap(await response.blob());
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
     canvas.width = bitmap.width;
     canvas.height = bitmap.height;
-    canvas.setAttribute('aria-label', `Halaman ${pageNumber} dari ${metadata.pageCount}`);
+    canvas.setAttribute('aria-label', `Halaman ${pageNumber} dari ${cachedModule.metadata.pageCount}`);
     context.drawImage(bitmap, 0, 0);
     bitmap.close();
     pdfPages.append(canvas);
     renderedCount += 1;
+    if (pageNumber === 1) viewerState.classList.add('hidden');
   }
 
   if (!renderedCount) return false;
-  viewerState.classList.add('hidden');
-  viewerTitle.textContent = metadata.title || title;
-  viewerStatus.textContent = `Offline: ${renderedCount} halaman tersimpan${metadata.pageCount > MAX_OFFLINE_PAGES ? ` (maksimal ${MAX_OFFLINE_PAGES} halaman pertama)` : ''}.`;
+  viewerTitle.textContent = cachedModule.metadata.title || title;
+  viewerStatus.textContent = statusMessage || `Dibuka dari cache (${renderedCount} halaman).`;
   viewer.focus();
   return true;
+}
+
+// Render satu halaman PDF.js ke canvas dengan lebar yang sesuai area viewer.
+async function renderPdfPage(pdf, pageNumber) {
+  const page = await pdf.getPage(pageNumber);
+  const baseViewport = page.getViewport({ scale: 1 });
+  const availableWidth = Math.max(280, viewer.clientWidth - 64);
+  const viewport = page.getViewport({ scale: availableWidth / baseViewport.width });
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  canvas.width = Math.ceil(viewport.width);
+  canvas.height = Math.ceil(viewport.height);
+  canvas.setAttribute('aria-label', `Halaman ${pageNumber} dari ${pdf.numPages}`);
+  await page.render({ canvasContext: context, viewport }).promise;
+  return canvas;
+}
+
+// Simpan metadata setelah antrean JPEG selesai dan hapus cache halaman yang sudah tidak berlaku.
+function queueOfflineMetadata(id, title, pageCount, sourceSize) {
+  offlineCacheQueue = offlineCacheQueue
+    .then(async () => {
+      const cache = await caches.open(OFFLINE_RENDER_CACHE);
+      const pageLimit = Math.min(pageCount, MAX_OFFLINE_PAGES);
+      for (let pageNumber = pageLimit + 1; pageNumber <= MAX_OFFLINE_PAGES; pageNumber += 1) {
+        await cache.delete(offlineCacheUrl(id, `page/${pageNumber}`));
+      }
+      await cacheOfflineMetadata(id, title, pageCount, sourceSize);
+    })
+    .catch(() => {});
+}
+
+// Perbarui maksimal 30 raster cache jika ukuran atau jumlah halaman PDF berubah.
+async function refreshOfflinePages(id, title, pdf, sourceSize) {
+  if (!('caches' in window)) return;
+  await offlineCacheQueue;
+  const pageLimit = Math.min(pdf.numPages, MAX_OFFLINE_PAGES);
+
+  for (let pageNumber = 1; pageNumber <= pageLimit; pageNumber += 1) {
+    const canvas = await renderPdfPage(pdf, pageNumber);
+    await cacheRenderedPage(id, pageNumber, canvas);
+    canvas.width = 0;
+    canvas.height = 0;
+  }
+
+  const cache = await caches.open(OFFLINE_RENDER_CACHE);
+  for (let pageNumber = pageLimit + 1; pageNumber <= MAX_OFFLINE_PAGES; pageNumber += 1) {
+    await cache.delete(offlineCacheUrl(id, `page/${pageNumber}`));
+  }
+  await cacheOfflineMetadata(id, title, pdf.numPages, sourceSize);
+}
+
+// Ambil PDF melalui metadata bertoken tanpa menyimpan URL bertoken ke Cache API.
+async function fetchModulePdf(id) {
+  const metadata = await fetchJson(`/api/modul/${encodeURIComponent(id)}/meta`);
+  if (!metadata.stream_url) throw new Error('URL streaming tidak tersedia.');
+
+  const response = await fetch(metadata.stream_url, { cache: 'no-store' });
+  if (!response.ok) throw new Error(`PDF gagal diambil (${response.status}).`);
+  const arrayBuffer = await response.arrayBuffer();
+  const pdf = await globalThis.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  return { pdf, sourceSize: arrayBuffer.byteLength };
+}
+
+// Segarkan cache tanpa loading UI dan muat halaman di atas batas cache lewat jaringan.
+async function refreshModuleInBackground(id, title, requestId, cachedModule) {
+  try {
+    const { pdf, sourceSize } = await fetchModulePdf(id);
+    if (cachedModule.metadata.sourceSize !== sourceSize || cachedModule.metadata.pageCount !== pdf.numPages) {
+      void refreshOfflinePages(id, title, pdf, sourceSize).catch(() => {});
+    }
+
+    if (pdf.numPages <= MAX_OFFLINE_PAGES || requestId !== activeRequest) return;
+    viewerStatus.textContent = `Memuat halaman ${MAX_OFFLINE_PAGES + 1}–${pdf.numPages} dari jaringan...`;
+    for (let pageNumber = MAX_OFFLINE_PAGES + 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+      const canvas = await renderPdfPage(pdf, pageNumber);
+      if (requestId !== activeRequest) return;
+      pdfPages.append(canvas);
+      viewerStatus.textContent = `Halaman ${pageNumber} dari ${pdf.numPages} dimuat dari jaringan.`;
+    }
+  } catch {
+    if (requestId === activeRequest && cachedModule.metadata.pageCount > MAX_OFFLINE_PAGES) {
+      viewerStatus.textContent = `Halaman 1–${MAX_OFFLINE_PAGES} tersedia dari cache; halaman berikutnya gagal dimuat.`;
+    }
+  }
 }
 
 function formatDate(isoString) {
@@ -260,60 +360,51 @@ async function generateCoverThumbnail(id, status, container) {
 // --- BUKA & RENDER VIEWER ---
 
 async function openModule(id, title) {
-  // Transisi UI
   katalogSection.classList.add('hidden');
   viewerSection.classList.remove('hidden');
   viewerSection.classList.add('flex');
   viewerTitle.textContent = title;
-  
+
   const requestId = ++activeRequest;
   pdfPages.replaceChildren();
-  setViewerState('loader-2', 'Memuat dokumen...');
+  viewerState.classList.add('hidden');
   viewerStatus.textContent = '';
 
   try {
-    const metadata = await fetchJson(`/api/modul/${encodeURIComponent(id)}/meta`);
+    const cachedModule = await readCachedModule(id, true);
     if (requestId !== activeRequest) return;
-    if (!metadata.stream_url) throw new Error('URL streaming tidak tersedia.');
-
-    const response = await fetch(metadata.stream_url, { cache: 'no-store' });
-    if (!response.ok) throw new Error(`PDF gagal diambil (${response.status}).`);
-    
-    const arrayBuffer = await response.arrayBuffer();
-    const pdf = await globalThis.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    if (requestId !== activeRequest) return;
-
-    await cacheOfflineMetadata(id, title, pdf.numPages).catch(() => {});
-
-    // Sembunyikan state loading
-    viewerState.classList.add('hidden');
-    
-    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
-      const page = await pdf.getPage(pageNumber);
-      const baseViewport = page.getViewport({ scale: 1 });
-      const availableWidth = Math.max(280, viewer.clientWidth - 64);
-      const viewport = page.getViewport({ scale: availableWidth / baseViewport.width });
-      
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      canvas.width = Math.ceil(viewport.width);
-      canvas.height = Math.ceil(viewport.height);
-      canvas.setAttribute('aria-label', `Halaman ${pageNumber} dari ${pdf.numPages}`);
-      pdfPages.append(canvas);
-      
-      await page.render({ canvasContext: context, viewport }).promise;
-      
-      if (requestId !== activeRequest) {
-        pdfPages.replaceChildren();
+    if (cachedModule?.complete) {
+      const rendered = await renderCachedModule(cachedModule, title, requestId);
+      if (rendered) {
+        void refreshModuleInBackground(id, title, requestId, cachedModule);
         return;
       }
+    }
+  } catch {
+    // Cache tidak tersedia atau rusak; lanjutkan dengan pemuatan jaringan.
+  }
 
-      if (pageNumber <= MAX_OFFLINE_PAGES) {
-        queueRenderedPage(id, pageNumber, canvas);
+  if (requestId !== activeRequest) return;
+  setViewerState('loader-2', 'Memuat dokumen...');
+
+  try {
+    const { pdf, sourceSize } = await fetchModulePdf(id);
+    if (requestId !== activeRequest) return;
+
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+      const canvas = await renderPdfPage(pdf, pageNumber);
+      if (requestId !== activeRequest) return;
+      pdfPages.append(canvas);
+      if (pageNumber === 1) viewerState.classList.add('hidden');
+      if (pageNumber <= MAX_OFFLINE_PAGES) queueRenderedPage(id, pageNumber, canvas);
+      if (pageNumber > MAX_OFFLINE_PAGES) {
+        viewerStatus.textContent = `Memuat halaman ${pageNumber} dari ${pdf.numPages}...`;
       }
     }
+
+    queueOfflineMetadata(id, title, pdf.numPages, sourceSize);
     viewerStatus.textContent = pdf.numPages > MAX_OFFLINE_PAGES
-      ? `Halaman 1–${MAX_OFFLINE_PAGES} disimpan untuk akses offline.`
+      ? `Halaman 1-${MAX_OFFLINE_PAGES} disimpan untuk akses offline.`
       : 'Halaman disimpan untuk akses offline.';
     viewer.focus();
   } catch (error) {
@@ -321,7 +412,10 @@ async function openModule(id, title) {
     pdfPages.replaceChildren();
     viewerStatus.textContent = '';
     try {
-      if (await renderOfflineModule(id, title, requestId)) return;
+      const cachedModule = await readCachedModule(id, false);
+      if (requestId !== activeRequest) return;
+      if (cachedModule && await renderCachedModule(cachedModule, title, requestId,
+        `Jaringan gagal; ${cachedModule.pages.length} halaman dari cache.`)) return;
     } catch {
       if (requestId !== activeRequest) return;
     }
