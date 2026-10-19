@@ -32,6 +32,7 @@ const settingsFeedback = document.querySelector('#settings-feedback');
 const cancelSettingsButton = document.querySelector('#cancel-settings-button');
 const saveSettingsButton = document.querySelector('#save-settings-button');
 const saveSettingsLabel = document.querySelector('#save-settings-label');
+let savedEnableCompression = null;
 
 function formatFileSize(bytes) {
   const size = Number(bytes);
@@ -164,6 +165,11 @@ function displaySettingsFeedback(message, isError = false) {
     : 'border-brand-green/30 bg-white text-text-main'}`;
 }
 
+// Keeps switch accessibility state aligned with the checkbox's native checked state.
+function syncCompressionToggleState() {
+  enableCompressionInput.setAttribute('aria-checked', String(enableCompressionInput.checked));
+}
+
 async function loadCompressionSetting() {
   settingsFeedback.classList.add('hidden');
   compressionLevelInput.disabled = true;
@@ -183,7 +189,8 @@ async function loadCompressionSetting() {
     if (!response.ok) throw new Error(result.error || 'Pengaturan gagal dimuat.');
     compressionLevelInput.value = result.compression_level;
     enableCompressionInput.checked = result.enable_compression;
-    enableCompressionInput.setAttribute('aria-checked', String(enableCompressionInput.checked));
+    savedEnableCompression = enableCompressionInput.checked;
+    syncCompressionToggleState();
     loaded = true;
   } catch (error) {
     displaySettingsFeedback(error.message || 'Pengaturan gagal dimuat.', true);
@@ -196,6 +203,8 @@ async function loadCompressionSetting() {
 
 async function saveCompressionSetting(event) {
   event.preventDefault();
+  const requestedEnableCompression = enableCompressionInput.checked;
+  const previousEnableCompression = savedEnableCompression;
   saveSettingsButton.disabled = true;
   compressionLevelInput.disabled = true;
   enableCompressionInput.disabled = true;
@@ -210,7 +219,7 @@ async function saveCompressionSetting(event) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         compression_level: compressionLevelInput.value,
-        enable_compression: enableCompressionInput.checked
+        enable_compression: requestedEnableCompression
       })
     });
     if (response.status === 401) {
@@ -221,9 +230,14 @@ async function saveCompressionSetting(event) {
     if (!response.ok) throw new Error(result.error || 'Pengaturan gagal disimpan.');
     compressionLevelInput.value = result.compression_level;
     enableCompressionInput.checked = result.enable_compression;
-    enableCompressionInput.setAttribute('aria-checked', String(enableCompressionInput.checked));
+    savedEnableCompression = enableCompressionInput.checked;
+    syncCompressionToggleState();
     displaySettingsFeedback('Pengaturan kompresi berhasil disimpan.');
   } catch (error) {
+    if (previousEnableCompression !== null) {
+      enableCompressionInput.checked = previousEnableCompression;
+      syncCompressionToggleState();
+    }
     displaySettingsFeedback(error.message || 'Pengaturan gagal disimpan.', true);
   } finally {
     saveSettingsButton.disabled = false;
@@ -324,9 +338,7 @@ openSettingsButton.addEventListener('click', () => {
   loadCompressionSetting();
 });
 cancelSettingsButton.addEventListener('click', () => settingsDialog.close());
-enableCompressionInput.addEventListener('change', () => {
-  enableCompressionInput.setAttribute('aria-checked', String(enableCompressionInput.checked));
-});
+enableCompressionInput.addEventListener('change', syncCompressionToggleState);
 settingsForm.addEventListener('submit', saveCompressionSetting);
 closeUploadButton.addEventListener('click', () => uploadDialog.close());
 cancelUploadButton.addEventListener('click', () => uploadDialog.close());
