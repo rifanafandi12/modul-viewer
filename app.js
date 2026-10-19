@@ -10,6 +10,7 @@ import modulRouter from './routes/modul.js';
 import authRouter from './routes/auth.js';
 import uploadRouter from './routes/upload.js';
 import settingsRouter from './routes/settings.js';
+import workerRouter from './routes/worker.js';
 
 dotenv.config();
 
@@ -77,6 +78,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/modul', modulRouter);
 app.use('/api/modul', uploadRouter);
 app.use('/api/settings', settingsRouter);
+app.use('/api/worker', workerRouter);
 
 app.get('/health', (req, res) => {
   res.json({ ok: true, env: process.env.NODE_ENV || 'development' });

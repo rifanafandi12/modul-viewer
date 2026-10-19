@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 import fs from 'fs/promises';
 import path from 'path';
 import { randomBytes } from 'crypto';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { pool } from '../services/db.js';
 import { compressPdf } from '../services/compress.js';
 
@@ -199,11 +199,11 @@ async function processJob(job) {
   }
 }
 
-// Drains currently available and stale jobs once, then exits instead of polling forever.
-async function runOnce() {
+// Drains available and stale jobs once while holding the queue advisory lock.
+export async function processQueue() {
   let lockConnection;
   let lockAcquired = false;
-  let exitCode = 0;
+  const result = { ok: true, processed: 0, skipped: false };
 
   try {
     await fs.access(originalDir);
@@ -217,7 +217,7 @@ async function runOnce() {
     lockAcquired = lockRows[0]?.acquired === 1;
 
     if (!lockAcquired) {
-      console.log('Worker lain sedang memproses antrean; putaran ini dilewati.');
+      result.skipped = true;
     } else {
       await recoverStaleJobs();
 
@@ -225,39 +225,71 @@ async function runOnce() {
         const job = await claimJob();
         if (!job) break;
 
-        console.log(`Memproses job kompresi ${job.id}.`);
         await processJob(job);
+        result.processed += 1;
       }
-      console.log('Antrean habis; worker berhenti.');
     }
   } catch (error) {
-    console.error('Worker antrean gagal:', error);
-    exitCode = 1;
+    console.error('Worker antrean gagal:', error.message);
+    result.ok = false;
   } finally {
     if (lockConnection) {
+      let canReturnConnectionToPool = true;
       if (lockAcquired) {
         try {
-          await lockConnection.execute('SELECT RELEASE_LOCK(?)', [QUEUE_LOCK_NAME]);
+          const [releaseRows] = await lockConnection.execute(
+            'SELECT RELEASE_LOCK(?) AS released',
+            [QUEUE_LOCK_NAME]
+          );
+          if (releaseRows[0]?.released !== 1) {
+            console.error('Advisory lock worker tidak berhasil dilepas.');
+            result.ok = false;
+            canReturnConnectionToPool = false;
+          }
         } catch (error) {
           console.error('Gagal melepas lock antrean:', error.message);
-          exitCode = 1;
+          result.ok = false;
+          canReturnConnectionToPool = false;
         }
       }
-      lockConnection.release();
+      try {
+        if (canReturnConnectionToPool) {
+          lockConnection.release();
+        } else {
+          lockConnection.destroy();
+        }
+      } catch (error) {
+        console.error('Gagal melepas koneksi worker:', error.message);
+        result.ok = false;
+      }
     }
+  }
 
+  return result;
+}
+
+const invokedPath = process.argv[1]
+  ? pathToFileURL(path.resolve(process.argv[1])).href
+  : null;
+
+if (invokedPath === import.meta.url) {
+  void (async () => {
+    const result = await processQueue();
     try {
       await pool.end();
     } catch (error) {
       console.error('Gagal menutup koneksi worker:', error.message);
-      exitCode = 1;
+      process.exitCode = 1;
+      return;
     }
-  }
-
-  process.exit(exitCode);
+    process.exitCode = result.ok ? 0 : 1;
+  })().catch(async (error) => {
+    console.error('Worker gagal berhenti dengan bersih:', error.message);
+    try {
+      await pool.end();
+    } catch (closeError) {
+      console.error('Gagal menutup koneksi worker:', closeError.message);
+    }
+    process.exitCode = 1;
+  });
 }
-
-runOnce().catch((error) => {
-  console.error('Worker gagal berhenti dengan bersih:', error);
-  process.exit(1);
-});
