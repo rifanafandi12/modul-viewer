@@ -27,6 +27,7 @@ const openSettingsButton = document.querySelector('#open-settings-button');
 const settingsDialog = document.querySelector('#settings-dialog');
 const settingsForm = document.querySelector('#settings-form');
 const compressionLevelInput = document.querySelector('#compression-level');
+const enableCompressionInput = document.querySelector('#enable-compression');
 const settingsFeedback = document.querySelector('#settings-feedback');
 const cancelSettingsButton = document.querySelector('#cancel-settings-button');
 const saveSettingsButton = document.querySelector('#save-settings-button');
@@ -166,6 +167,7 @@ function displaySettingsFeedback(message, isError = false) {
 async function loadCompressionSetting() {
   settingsFeedback.classList.add('hidden');
   compressionLevelInput.disabled = true;
+  enableCompressionInput.disabled = true;
   saveSettingsButton.disabled = true;
   let loaded = false;
   try {
@@ -180,11 +182,14 @@ async function loadCompressionSetting() {
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.error || 'Pengaturan gagal dimuat.');
     compressionLevelInput.value = result.compression_level;
+    enableCompressionInput.checked = result.enable_compression;
+    enableCompressionInput.setAttribute('aria-checked', String(enableCompressionInput.checked));
     loaded = true;
   } catch (error) {
     displaySettingsFeedback(error.message || 'Pengaturan gagal dimuat.', true);
   } finally {
     compressionLevelInput.disabled = false;
+    enableCompressionInput.disabled = false;
     saveSettingsButton.disabled = !loaded;
   }
 }
@@ -193,6 +198,7 @@ async function saveCompressionSetting(event) {
   event.preventDefault();
   saveSettingsButton.disabled = true;
   compressionLevelInput.disabled = true;
+  enableCompressionInput.disabled = true;
   saveSettingsLabel.textContent = 'Menyimpan…';
   settingsFeedback.classList.add('hidden');
 
@@ -202,7 +208,10 @@ async function saveCompressionSetting(event) {
       credentials: 'same-origin',
       cache: 'no-store',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ compression_level: compressionLevelInput.value })
+      body: JSON.stringify({
+        compression_level: compressionLevelInput.value,
+        enable_compression: enableCompressionInput.checked
+      })
     });
     if (response.status === 401) {
       window.location.replace('/login.html');
@@ -211,12 +220,15 @@ async function saveCompressionSetting(event) {
     const result = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(result.error || 'Pengaturan gagal disimpan.');
     compressionLevelInput.value = result.compression_level;
-    displaySettingsFeedback('Level kompresi berhasil disimpan.');
+    enableCompressionInput.checked = result.enable_compression;
+    enableCompressionInput.setAttribute('aria-checked', String(enableCompressionInput.checked));
+    displaySettingsFeedback('Pengaturan kompresi berhasil disimpan.');
   } catch (error) {
     displaySettingsFeedback(error.message || 'Pengaturan gagal disimpan.', true);
   } finally {
     saveSettingsButton.disabled = false;
     compressionLevelInput.disabled = false;
+    enableCompressionInput.disabled = false;
     saveSettingsLabel.textContent = 'Simpan pengaturan';
   }
 }
@@ -312,6 +324,9 @@ openSettingsButton.addEventListener('click', () => {
   loadCompressionSetting();
 });
 cancelSettingsButton.addEventListener('click', () => settingsDialog.close());
+enableCompressionInput.addEventListener('change', () => {
+  enableCompressionInput.setAttribute('aria-checked', String(enableCompressionInput.checked));
+});
 settingsForm.addEventListener('submit', saveCompressionSetting);
 closeUploadButton.addEventListener('click', () => uploadDialog.close());
 cancelUploadButton.addEventListener('click', () => uploadDialog.close());

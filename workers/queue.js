@@ -147,6 +147,20 @@ async function markJobDone(job, filename) {
   }
 }
 
+// Checks the copied source PDF signature before allowing the worker to publish it as ready.
+async function validatePdfSignature(filePath) {
+  const file = await fs.open(filePath, 'r');
+  try {
+    const header = Buffer.alloc(5);
+    const { bytesRead } = await file.read(header, 0, header.length, 0);
+    if (bytesRead !== header.length || header.toString('ascii') !== '%PDF-') {
+      throw new Error('File sumber bukan PDF yang valid.');
+    }
+  } finally {
+    await file.close();
+  }
+}
+
 // Compresses one claimed job and keeps temporary output invisible until the PDF is complete.
 async function processJob(job) {
   let temporaryPath;
@@ -164,18 +178,31 @@ async function processJob(job) {
     );
     if (rows.length === 0) throw new Error('Modul tidak ditemukan.');
 
-    const [settingsRows] = await pool.execute(
-      'SELECT setting_value FROM settings WHERE setting_key = ?',
-      ['compression_level']
-    );
-    const compressionLevel = settingsRows[0]?.setting_value;
-    if (!COMPRESSION_LEVELS.has(compressionLevel)) {
-      throw new Error('Pengaturan level kompresi tidak ada atau tidak valid.');
-    }
-
     const originalPath = resolveStoredPath(originalDir, rows[0].original_file);
     const filename = path.basename(originalPath);
-    await compressPdf({ originalDir, filename, temporaryPath, compressionLevel });
+    if (path.extname(filename).toLowerCase() !== '.pdf') {
+      throw new Error('Konversi Word/PPT belum didukung');
+    }
+
+    const [settingsRows] = await pool.execute(
+      'SELECT setting_key, setting_value FROM settings WHERE setting_key IN (?, ?)',
+      ['compression_level', 'enable_compression']
+    );
+    const settings = Object.fromEntries(settingsRows.map(({ setting_key, setting_value }) => [setting_key, setting_value]));
+    const compressionLevel = settings.compression_level;
+    if (!['true', 'false'].includes(settings.enable_compression)) {
+      throw new Error('Pengaturan kompresi otomatis tidak ada atau tidak valid.');
+    }
+
+    if (settings.enable_compression === 'true') {
+      if (!COMPRESSION_LEVELS.has(compressionLevel)) {
+        throw new Error('Pengaturan level kompresi tidak ada atau tidak valid.');
+      }
+      await compressPdf({ originalDir, filename, temporaryPath, compressionLevel });
+    } else {
+      await fs.copyFile(originalPath, temporaryPath);
+      await validatePdfSignature(temporaryPath);
+    }
     await fs.rename(temporaryPath, finalPath);
     await markJobDone(job, finalName);
   } catch (err) {

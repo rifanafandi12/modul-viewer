@@ -42,6 +42,10 @@ INSERT INTO settings (setting_key, setting_value)
 VALUES ('compression_level', 'recommended')
 ON DUPLICATE KEY UPDATE setting_key = setting_key;
 
+INSERT INTO settings (setting_key, setting_value)
+VALUES ('enable_compression', 'true')
+ON DUPLICATE KEY UPDATE setting_key = setting_key;
+
 -- Insert admin default (password: admin123)
 -- Hash di bawah ini di-generate menggunakan bcrypt dengan salt 10
 INSERT INTO users (username, password_hash)

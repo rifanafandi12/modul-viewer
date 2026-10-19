@@ -153,8 +153,20 @@
         <div class="mb-5">
           <p class="mb-1 text-sm font-medium text-brand-blue">Administrasi</p>
           <h2 class="text-xl font-bold">Pengaturan kompresi</h2>
-          <p class="mt-1 text-sm text-text-muted">Level ini digunakan untuk job kompresi berikutnya.</p>
+          <p class="mt-1 text-sm text-text-muted">Pengaturan ini digunakan untuk job yang diproses berikutnya.</p>
         </div>
+
+        <label for="enable-compression" class="mb-6 flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-border-soft p-4 focus-within:ring-2 focus-within:ring-brand-blue">
+          <span>
+            <span class="block text-sm font-medium">Aktifkan Kompresi Otomatis</span>
+            <span class="mt-1 block text-xs text-text-muted">Jika mati, PDF disimpan tanpa dikirim ke layanan kompresi.</span>
+          </span>
+          <span class="relative inline-flex h-6 w-11 shrink-0">
+            <input id="enable-compression" name="enable_compression" type="checkbox" role="switch" aria-checked="false" aria-label="Aktifkan Kompresi Otomatis" class="peer absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0">
+            <span aria-hidden="true" class="absolute inset-0 rounded-full bg-bg-soft transition-colors peer-checked:bg-brand-blue"></span>
+            <span aria-hidden="true" class="pointer-events-none absolute left-1 top-1 h-4 w-4 rounded-full bg-white transition-transform peer-checked:translate-x-5"></span>
+          </span>
+        </label>
 
         <label for="compression-level" class="mb-2 block text-sm font-medium">Level kompresi</label>
         <select id="compression-level" name="compression_level" class="block w-full rounded-lg border border-border-soft bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20">
