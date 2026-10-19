@@ -116,18 +116,38 @@ async function renderCachedModule(cachedModule, title, requestId, statusMessage)
   return true;
 }
 
-// Render satu halaman PDF.js ke canvas dengan lebar yang sesuai area viewer.
+// Ukur ruang konten viewer setelah layout tampil agar render tidak memakai lebar nol.
+async function getViewerContentWidth() {
+  let viewerWidth = viewer.clientWidth;
+  if (!viewerWidth) {
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    viewerWidth = viewer.clientWidth;
+  }
+  if (!viewerWidth) throw new Error('Area viewer belum memiliki lebar.');
+
+  const style = window.getComputedStyle(viewer);
+  const horizontalPadding = Number.parseFloat(style.paddingLeft) + Number.parseFloat(style.paddingRight);
+  return Math.floor(Math.min(viewerWidth - horizontalPadding, window.innerWidth));
+}
+
+// Render halaman PDF.js pada lebar viewer dan gunakan DPR untuk resolusi internal canvas.
 async function renderPdfPage(pdf, pageNumber) {
   const page = await pdf.getPage(pageNumber);
   const baseViewport = page.getViewport({ scale: 1 });
-  const availableWidth = Math.max(280, viewer.clientWidth - 64);
+  const availableWidth = await getViewerContentWidth();
+  if (availableWidth < 1) throw new Error('Lebar konten viewer tidak valid.');
   const viewport = page.getViewport({ scale: availableWidth / baseViewport.width });
+  const pixelRatio = Math.max(1, window.devicePixelRatio || 1);
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d');
-  canvas.width = Math.ceil(viewport.width);
-  canvas.height = Math.ceil(viewport.height);
+  canvas.width = Math.ceil(viewport.width * pixelRatio);
+  canvas.height = Math.ceil(viewport.height * pixelRatio);
   canvas.setAttribute('aria-label', `Halaman ${pageNumber} dari ${pdf.numPages}`);
-  await page.render({ canvasContext: context, viewport }).promise;
+  await page.render({
+    canvasContext: context,
+    viewport,
+    transform: [pixelRatio, 0, 0, pixelRatio, 0, 0]
+  }).promise;
   return canvas;
 }
 

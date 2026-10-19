@@ -14,6 +14,7 @@ button {
 /* Area Canvas PDF di dalam Viewer */
 .pdf-pages canvas {
   display: block;
+  width: 100%;
   max-width: 100%;
   height: auto;
   border: 1px solid #E0E0E0;
