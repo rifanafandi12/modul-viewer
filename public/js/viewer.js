@@ -130,24 +130,20 @@ async function getViewerContentWidth() {
   return Math.floor(Math.min(viewerWidth - horizontalPadding, window.innerWidth));
 }
 
-// Render halaman PDF.js pada lebar viewer dan gunakan DPR untuk resolusi internal canvas.
+// Render halaman pada resolusi minimal 1200 piksel; CSS mengecilkannya sesuai lebar layar.
 async function renderPdfPage(pdf, pageNumber) {
   const page = await pdf.getPage(pageNumber);
   const baseViewport = page.getViewport({ scale: 1 });
   const availableWidth = await getViewerContentWidth();
   if (availableWidth < 1) throw new Error('Lebar konten viewer tidak valid.');
-  const viewport = page.getViewport({ scale: availableWidth / baseViewport.width });
-  const pixelRatio = Math.max(1, window.devicePixelRatio || 1);
+  const canvasWidthTarget = Math.max(1200, availableWidth);
+  const viewport = page.getViewport({ scale: canvasWidthTarget / baseViewport.width });
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d');
-  canvas.width = Math.ceil(viewport.width * pixelRatio);
-  canvas.height = Math.ceil(viewport.height * pixelRatio);
+  canvas.width = Math.ceil(viewport.width);
+  canvas.height = Math.ceil(viewport.height);
   canvas.setAttribute('aria-label', `Halaman ${pageNumber} dari ${pdf.numPages}`);
-  await page.render({
-    canvasContext: context,
-    viewport,
-    transform: [pixelRatio, 0, 0, pixelRatio, 0, 0]
-  }).promise;
+  await page.render({ canvasContext: context, viewport }).promise;
   return canvas;
 }
 
