@@ -1,4 +1,8 @@
 const dashboardApp = document.querySelector('#dashboard-app');
+const adminSidebar = document.querySelector('#admin-sidebar');
+const sidebarOverlay = document.querySelector('#sidebar-overlay');
+const openSidebarButton = document.querySelector('#open-sidebar-button');
+const adminNavigation = document.querySelector('#admin-navigation');
 const adminWelcome = document.querySelector('#admin-welcome');
 const moduleState = document.querySelector('#module-state');
 const moduleTableWrap = document.querySelector('#module-table-wrap');
@@ -33,6 +37,26 @@ const cancelSettingsButton = document.querySelector('#cancel-settings-button');
 const saveSettingsButton = document.querySelector('#save-settings-button');
 const saveSettingsLabel = document.querySelector('#save-settings-label');
 let savedEnableCompression = null;
+
+// Buka drawer navigasi pada layar kecil tanpa mengubah tata letak desktop.
+function openAdminSidebar() {
+  adminSidebar.classList.remove('hidden');
+  requestAnimationFrame(() => adminSidebar.classList.remove('-translate-x-full'));
+  sidebarOverlay.classList.remove('hidden');
+  openSidebarButton.setAttribute('aria-expanded', 'true');
+  document.body.classList.add('overflow-hidden');
+}
+
+// Tutup drawer dan pulihkan scroll halaman setelah menu dipilih atau overlay diklik.
+function closeAdminSidebar() {
+  adminSidebar.classList.add('-translate-x-full');
+  sidebarOverlay.classList.add('hidden');
+  openSidebarButton.setAttribute('aria-expanded', 'false');
+  document.body.classList.remove('overflow-hidden');
+  if (window.matchMedia('(max-width: 767px)').matches) {
+    adminSidebar.classList.add('hidden');
+  }
+}
 
 function formatFileSize(bytes) {
   const size = Number(bytes);
@@ -332,6 +356,19 @@ async function deleteModule(moduleId, title, button) {
 }
 
 openUploadButton.addEventListener('click', openUploadModal);
+openSidebarButton.addEventListener('click', openAdminSidebar);
+sidebarOverlay.addEventListener('click', closeAdminSidebar);
+adminNavigation.addEventListener('click', (event) => {
+  if (event.target.closest('a, button')) closeAdminSidebar();
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && openSidebarButton.getAttribute('aria-expanded') === 'true') {
+    closeAdminSidebar();
+  }
+});
+window.addEventListener('resize', () => {
+  if (!window.matchMedia('(max-width: 767px)').matches) closeAdminSidebar();
+});
 openSettingsButton.addEventListener('click', () => {
   settingsDialog.showModal();
   if (globalThis.lucide) globalThis.lucide.createIcons();

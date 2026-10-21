@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="id">
+<html lang="id" class="w-full max-w-full overflow-x-hidden">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#1E5AA8">
   <title>Penampil Modul - Lembaga Kursus dan Pelatihan</title>
   <link rel="manifest" href="/manifest.json">
@@ -18,11 +18,11 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <script type="module" src="/js/viewer.js"></script>
 </head>
-<body class="min-h-screen bg-bg-soft font-sans text-base leading-relaxed text-text-main flex flex-col">
+<body class="min-h-screen w-full max-w-full overflow-x-hidden bg-bg-soft font-sans text-base leading-relaxed text-text-main flex flex-col">
 
   <!-- Header: Tanpa Gradient, Logo di Kiri -->
-  <header class="h-16 bg-white border-b border-border-soft sticky top-0 z-10">
-    <div class="mx-auto flex h-full max-w-screen-2xl items-center justify-between px-4 md:px-6">
+  <header class="site-header h-16 bg-white border-b border-border-soft sticky top-0 z-10">
+    <div class="mx-auto flex h-full w-full max-w-screen-2xl items-center justify-between px-4 md:px-6">
       <div class="flex items-center gap-3">
         <!-- Ganti path logo jika perlu -->
         <a href="/">
@@ -35,7 +35,7 @@
     </div>
   </header>
 
-  <main class="flex-1 mx-auto w-full max-w-screen-2xl px-4 md:px-6 py-6 flex flex-col gap-6 relative">
+  <main class="box-border flex w-full max-w-full flex-1 flex-col gap-6 px-4 py-6 relative md:mx-auto md:max-w-screen-2xl md:px-6">
 
     <!-- Tampilan Daftar Modul (Katalog) -->
     <div id="katalog-section" class="flex flex-col gap-4">
@@ -48,26 +48,47 @@
       </div>
 
       <!-- Grid Container -->
-      <div id="module-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5"></div>
+      <div id="module-list" class="grid w-full max-w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-5"></div>
     </div>
 
     <!-- Tampilan Viewer PDF (Akan ditampilkan via JS saat modul diklik) -->
     <div id="viewer-section" class="hidden flex-col gap-4 w-full">
-      <div class="flex items-center justify-between border-b border-border-soft pb-3">
-        <div class="flex items-center gap-3 min-w-0">
-          <button id="btn-back" class="p-2 rounded-full hover:bg-white border border-transparent hover:border-border-soft transition-colors text-text-muted hover:text-brand-blue" aria-label="Kembali ke katalog">
-            <i data-lucide="arrow-left" class="h-5 w-5"></i>
+      <div id="viewer-toolbar" class="viewer-toolbar sticky z-30 flex min-h-14 w-full max-w-full items-center gap-2 border-b border-border-soft bg-white px-2 sm:gap-3 sm:px-3">
+        <button id="btn-back" class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-transparent text-text-muted transition-colors hover:bg-bg-soft hover:text-brand-blue" aria-label="Kembali ke katalog">
+          <i data-lucide="arrow-left" class="h-5 w-5" aria-hidden="true"></i>
+        </button>
+        <h2 id="viewer-title" class="min-w-0 flex-1 truncate text-base font-bold text-text-main">Memuat...</h2>
+        <span id="viewer-page-indicator" class="shrink-0 text-xs font-medium tabular-nums text-text-muted sm:text-sm" aria-live="polite" aria-label="Halaman 0 dari 0">0 / 0</span>
+        <div class="flex shrink-0 items-center gap-1">
+          <button id="viewer-zoom-out" class="inline-flex h-11 w-11 items-center justify-center rounded-lg text-text-main hover:bg-bg-soft focus:outline-none focus:ring-2 focus:ring-brand-blue disabled:opacity-50" type="button" aria-label="Perkecil PDF" title="Perkecil">
+            <i data-lucide="minus" class="h-4 w-4" aria-hidden="true"></i>
           </button>
-          <h2 id="viewer-title" class="text-lg md:text-xl font-bold text-text-main truncate">Memuat...</h2>
+          <button id="viewer-zoom-in" class="inline-flex h-11 w-11 items-center justify-center rounded-lg text-text-main hover:bg-bg-soft focus:outline-none focus:ring-2 focus:ring-brand-blue disabled:opacity-50" type="button" aria-label="Perbesar PDF" title="Perbesar">
+            <i data-lucide="plus" class="h-4 w-4" aria-hidden="true"></i>
+          </button>
         </div>
-        <p id="viewer-status" class="text-sm text-text-muted hidden md:block" role="status"></p>
+        <p id="viewer-status" class="sr-only" role="status" aria-live="polite"></p>
+        <div class="viewer-reading-progress" role="progressbar" aria-label="Progres membaca" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <span id="viewer-reading-progress-fill"></span>
+        </div>
       </div>
 
-      <div id="viewer" class="min-h-[70vh] overflow-auto rounded-lg border border-border-soft bg-white p-4 md:p-8 relative" tabindex="0" aria-label="Area pembaca PDF">
-        <div id="viewer-state" class="flex min-h-[60vh] flex-col items-center justify-center gap-2 text-center text-text-muted">
-          <!-- State default -->
+      <div id="viewer-download-state" class="hidden w-full max-w-full rounded-lg border border-border-soft bg-white px-4 py-3" aria-live="polite">
+        <div class="mb-2 flex items-center justify-between gap-3 text-sm">
+          <span id="viewer-download-label" class="truncate text-text-muted">Menyiapkan dokumen...</span>
+          <span id="viewer-download-percent" class="shrink-0 font-medium tabular-nums text-text-main">0%</span>
         </div>
-        <div id="pdf-pages" class="flex flex-col items-center gap-6"></div>
+        <div class="h-1.5 w-full overflow-hidden rounded-full bg-bg-soft" role="progressbar" aria-label="Progres unduhan PDF" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <span id="viewer-download-progress-fill" class="block h-full w-0 rounded-full bg-brand-blue transition-[width]"></span>
+        </div>
+      </div>
+
+      <div id="viewer" class="pdf-reader w-full max-w-full overflow-auto rounded-lg border border-border-soft bg-bg-soft p-3 sm:p-4 md:p-6" tabindex="0" aria-label="Area pembaca PDF">
+        <div id="viewer-state" class="viewer-skeleton flex min-h-[60vh] w-full flex-col items-center justify-center gap-4 text-center text-text-muted" aria-live="polite">
+          <div class="skeleton-page w-full max-w-3xl" aria-hidden="true"></div>
+          <span class="text-base">Menyiapkan dokumen...</span>
+        </div>
+        <div id="pdf-pages" class="pdf-pages flex w-full max-w-full flex-col items-center gap-3 sm:gap-4"></div>
       </div>
     </div>
 

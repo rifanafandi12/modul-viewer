@@ -30,14 +30,15 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="/js/admin.js" defer></script>
 </head>
-<body class="min-h-screen bg-bg-soft font-sans text-text-main">
-  <div id="dashboard-app" class="hidden min-h-screen lg:grid lg:grid-cols-[220px_minmax(0,1fr)]">
-    <aside class="flex flex-col border-b border-border-soft bg-white lg:min-h-screen lg:border-b-0 lg:border-r">
+<body class="min-h-screen w-full max-w-full overflow-x-hidden bg-bg-soft font-sans text-base text-text-main">
+  <div id="dashboard-app" class="hidden min-h-screen w-full max-w-full overflow-x-hidden md:grid md:grid-cols-[220px_minmax(0,1fr)]">
+    <button id="sidebar-overlay" type="button" class="fixed inset-0 z-40 hidden bg-text-main/40 md:hidden" aria-label="Tutup menu navigasi"></button>
+    <aside id="admin-sidebar" class="admin-sidebar fixed inset-y-0 left-0 z-50 hidden w-56 max-w-[85vw] -translate-x-full flex-col border-r border-border-soft bg-white transition-transform md:sticky md:top-0 md:flex md:h-screen md:w-full md:max-w-none md:translate-x-0">
       <a href="/" class="flex h-16 items-center gap-3 border-b border-border-soft px-4" aria-label="Perpustakaan Digital, ke katalog">
         <img src="/img/logo-1.png" alt="" class="h-9 w-auto object-contain">
         <span class="text-sm font-semibold text-text-main">Admin</span>
       </a>
-      <nav class="flex items-center gap-2 overflow-x-auto p-3 lg:flex-1 lg:flex-col lg:items-stretch" aria-label="Navigasi admin">
+      <nav id="admin-navigation" class="flex flex-1 flex-col items-stretch gap-2 overflow-y-auto p-3" aria-label="Navigasi admin">
         <a href="/" class="inline-flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-text-muted transition hover:bg-bg-soft hover:text-brand-blue">
           <i data-lucide="library" class="h-4 w-4" aria-hidden="true"></i>
           Katalog
@@ -50,18 +51,23 @@
           <i data-lucide="settings-2" class="h-4 w-4" aria-hidden="true"></i>
           Pengaturan
         </button>
-        <button id="logout-button" type="button" class="ml-auto inline-flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-text-muted transition hover:bg-bg-soft hover:text-brand-red disabled:cursor-not-allowed disabled:opacity-60 lg:ml-0 lg:mt-auto">
+        <button id="logout-button" type="button" class="mt-auto inline-flex shrink-0 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-text-muted transition hover:bg-bg-soft hover:text-brand-red disabled:cursor-not-allowed disabled:opacity-60">
           <i data-lucide="log-out" class="h-4 w-4" aria-hidden="true"></i>
           Logout
         </button>
       </nav>
     </aside>
 
-    <main class="min-w-0 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-      <header class="mb-6 flex flex-col gap-4 border-b border-border-soft pb-5 sm:flex-row sm:items-end sm:justify-between">
-        <div>
+    <main class="box-border min-w-0 w-full max-w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+      <header id="admin-toolbar" class="admin-toolbar sticky top-0 z-[60] -mx-4 mb-6 flex flex-col gap-4 border-b border-border-soft bg-bg-soft/95 px-4 pb-5 pt-3 backdrop-blur sm:-mx-6 sm:flex-row sm:items-end sm:justify-between sm:px-6 lg:-mx-8 lg:px-8">
+        <div class="flex min-w-0 items-center gap-3">
+          <button id="open-sidebar-button" type="button" class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border-soft bg-white text-text-main md:hidden" aria-label="Buka menu navigasi" aria-expanded="false" aria-controls="admin-sidebar">
+            <i data-lucide="menu" class="h-5 w-5" aria-hidden="true"></i>
+          </button>
+          <div class="min-w-0">
           <p class="mb-1 text-sm font-medium text-brand-blue">Administrasi</p>
-          <h1 class="text-2xl font-bold tracking-tight text-text-main sm:text-3xl">Daftar Modul</h1>
+          <h1 class="truncate text-2xl font-bold tracking-tight text-text-main sm:text-3xl">Daftar Modul</h1>
+          </div>
         </div>
         <div class="flex flex-wrap items-center gap-3">
           <p id="admin-welcome" class="text-sm text-text-muted" role="status">Memeriksa sesi…</p>
@@ -80,8 +86,8 @@
           <p class="text-sm text-text-muted">Status dan ukuran berkas modul di perpustakaan.</p>
         </div>
         <div id="module-state" class="px-4 py-8 text-center text-sm text-text-muted sm:px-5" role="status">Memuat daftar modul…</div>
-        <div id="module-table-wrap" class="hidden overflow-x-auto" tabindex="0" aria-label="Tabel modul, geser horizontal untuk melihat semua kolom">
-          <table id="module-table" class="min-w-[720px] w-full border-collapse text-left text-sm">
+        <div id="module-table-wrap" class="hidden w-full max-w-full overflow-x-auto" tabindex="0" aria-label="Tabel modul, geser horizontal untuk melihat semua kolom">
+          <table id="module-table" class="min-w-[720px] w-full max-w-full border-collapse text-left text-sm">
             <thead class="bg-bg-soft text-xs uppercase tracking-wide text-text-muted">
               <tr>
                 <th scope="col" class="px-5 py-3 font-semibold">Judul</th>

@@ -28,13 +28,23 @@ router.get('/:id/meta', async (req, res) => {
       return res.status(409).json({ error: 'Modul belum siap ditampilkan', status: modul.status });
     }
 
-    const token = generateToken({ id: modul.id, file: modul.optimized_file }, 300);
+    const optimizedDir = req.app.locals.optimizedDir;
+    const safeName = path.basename(modul.optimized_file || '');
+    const optimizedPath = path.resolve(optimizedDir, safeName);
+    const optimizedRelative = path.relative(optimizedDir, optimizedPath);
+    const streamSize = safeName && !optimizedRelative.startsWith('..')
+      && !path.isAbsolute(optimizedRelative) && fs.existsSync(optimizedPath)
+      ? fs.statSync(optimizedPath).size
+      : Number(modul.file_size) || 0;
+    // Token berlaku cukup lama agar PDF.js dapat meminta rentang halaman saat dokumen dibaca bertahap.
+    const token = generateToken({ id: modul.id, file: modul.optimized_file }, 1800);
 
     res.json({
       id: modul.id,
       title: modul.title,
       slug: modul.slug,
       file_size: modul.file_size,
+      stream_size: streamSize,
       token,
       stream_url: `/api/modul/${modul.id}/stream?token=${token}`
     });
@@ -70,12 +80,65 @@ router.get('/:id/stream', async (req, res) => {
     }
 
     const stat = fs.statSync(filePath);
+    const fileSize = stat.size;
+    const rangeHeader = req.headers.range;
+    if (fileSize === 0 && !rangeHeader) {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline');
+      res.setHeader('Accept-Ranges', 'bytes');
+      res.setHeader('Content-Length', '0');
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).end();
+    }
+    let start = 0;
+    let end = fileSize - 1;
+    let statusCode = 200;
+
+    if (rangeHeader) {
+      const rangeMatch = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader);
+      if (!rangeMatch || fileSize === 0) {
+        res.setHeader('Content-Range', `bytes */${fileSize}`);
+        return res.status(416).end();
+      }
+
+      if (rangeMatch[1] === '') {
+        const suffixLength = Number(rangeMatch[2]);
+        if (!Number.isSafeInteger(suffixLength) || suffixLength <= 0) {
+          res.setHeader('Content-Range', `bytes */${fileSize}`);
+          return res.status(416).end();
+        }
+        start = Math.max(fileSize - suffixLength, 0);
+      } else {
+        start = Number(rangeMatch[1]);
+        if (rangeMatch[2] !== '') end = Number(rangeMatch[2]);
+      }
+
+      if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end)
+        || start < 0 || start >= fileSize || end < start) {
+        res.setHeader('Content-Range', `bytes */${fileSize}`);
+        return res.status(416).end();
+      }
+
+      end = Math.min(end, fileSize - 1);
+      statusCode = 206;
+      res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+    }
+
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'inline');
-    res.setHeader('Content-Length', stat.size);
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Content-Length', String(end - start + 1));
     res.setHeader('Cache-Control', 'no-store');
 
-    fs.createReadStream(filePath).pipe(res);
+    const fileStream = fs.createReadStream(filePath, { start, end });
+    fileStream.on('error', (err) => {
+      if (err.code === 'ECONNRESET' || res.destroyed) return;
+      console.error(err);
+      if (res.headersSent) return res.destroy(err);
+      res.status(500).json({ error: 'Gagal streaming file' });
+    });
+    res.status(statusCode);
+    fileStream.pipe(res);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Gagal streaming file' });

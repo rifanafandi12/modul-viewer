@@ -1,5 +1,6 @@
-const STATIC_CACHE = 'modul-viewer-static-v1';
+const STATIC_CACHE = 'modul-viewer-static-v2';
 const CATALOG_CACHE = 'modul-viewer-catalog-v1';
+const RENDERED_CACHE = 'modul-viewer-rendered-v2';
 const CATALOG_KEY = new URL('/api/modul', self.location.origin).href;
 const STATIC_ASSETS = [
   '/',
@@ -28,7 +29,8 @@ self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const cacheNames = await caches.keys();
     await Promise.all(cacheNames
-      .filter((name) => name.startsWith('modul-viewer-static-') && name !== STATIC_CACHE)
+      .filter((name) => (name.startsWith('modul-viewer-static-') && name !== STATIC_CACHE)
+        || (name.startsWith('modul-viewer-rendered-') && name !== RENDERED_CACHE))
       .map((name) => caches.delete(name)));
     await self.clients.claim();
   })());
